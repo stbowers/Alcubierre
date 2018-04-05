@@ -1,0 +1,29 @@
+-Alcubere
+-Roguelike
+-FTL inspired
+-three 'sectors'
+   - four objectives in each sector, you take on one and get full rewards for it, the others will be taken on by other ships and will get reduced rewards, or concequences if the area is paniced
+   - inner solar system - objectives: Earth, Venus, Solar Outpost
+   - mid solar system - objectives: Mars, Jupiter, Asteroid Belt Outpost
+   - far solar system - objectives: Titan (Saturn), Neptune Outpost, Kuiper Belt Outpost
+   - final battle: hold or destroy the hyperlane launch gate at the edge of the solar system - this is the only way aliens can get into the solar system
+
+Battles:
+   - your ship against an enemy base (FTL Like)
+   - also a screen for the planet/space station health
+   - you get extra points based on destroying enemy targets, and keeping civilian targets from getting harmed
+   - your objective is almost never to completely destroy the enemy, but just to weaken it or get information from it (you're an advanced scout)
+
+    ship status|-------- YOUR SHIP ---------
+    goals      |
+               |CIVILIAN BASE |   ENEMY BASE
+
+   - you finish the battle either by defeating the enemy (destroy their control room) or making an emergency jump
+   - you loose if the control room of the enemy base is destroyed
+
+
+DIFICULTY:
+[1] - Easy
+[2] - Normal
+[3] - Hard
+[4] - Demo (no damage taken, enemeys destroyed instantly in order to show gameplay)

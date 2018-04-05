@@ -1,0 +1,22 @@
+[
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include    -o CMakeFiles/Alcubierre.dir/src/graphics.c.o   -c /opt/development/c/cs2060/final/src/graphics.c",
+  "file": "/opt/development/c/cs2060/final/src/graphics.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include    -o CMakeFiles/Alcubierre.dir/src/main.c.o   -c /opt/development/c/cs2060/final/src/main.c",
+  "file": "/opt/development/c/cs2060/final/src/main.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include    -o CMakeFiles/Alcubierre.dir/src/misc.c.o   -c /opt/development/c/cs2060/final/src/misc.c",
+  "file": "/opt/development/c/cs2060/final/src/misc.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include    -o CMakeFiles/Alcubierre.dir/src/objects/UI_SelectionWindow.c.o   -c /opt/development/c/cs2060/final/src/objects/UI_SelectionWindow.c",
+  "file": "/opt/development/c/cs2060/final/src/objects/UI_SelectionWindow.c"
+}
+]

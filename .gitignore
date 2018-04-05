@@ -1,0 +1,5 @@
+.vscode/
+.vscode/*
+.bin/
+.bin/*
+.gdb_history
