@@ -1,3 +1,0 @@
-/opt/development/c/cs2060/final/bin/CMakeFiles/rebuild_cache.dir
-/opt/development/c/cs2060/final/bin/CMakeFiles/Alcubierre.dir
-/opt/development/c/cs2060/final/bin/CMakeFiles/edit_cache.dir
