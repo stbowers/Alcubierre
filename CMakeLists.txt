@@ -42,8 +42,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(LIBRARY_BASE /usr)
 
     # Load packages for libraries we use
-    find_package(ncurses)
-    find_package(panel)
+    find_package(ncursesw)
+    find_package(panelw)
     find_package(ZLIB)
     set(PROJECT_LIBRARIES ${NCURSES_LIBRARY} ${PANEL_LIBRARY} ${ZLIB_LIBRARY})
     set(PROJECT_INCLUDE_DIRS ${NCURSES_INCLUDE_DIR} ${PANEL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
@@ -58,6 +58,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(LIBRARY_BASE /opt/local)
 
     # Load packages for libraries we use
+    # macos' ncurses library already has wide char functionality, so no need to link ncursesw
     find_package(ncurses)
     find_package(panel)
     find_package(ZLIB)
