@@ -13,7 +13,7 @@ endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(LIBRARY_HINTS ${PROJECT_SOURCE_DIR}/lib/macOS)
 endif()
-find_library(PANEL_LIBRARY NAMES panel HINTS ${LIBRARY_HINTS} ${NCURSES_BASE}/lib ${LIBRARY_BASE}/lib)
+find_library(PANEL_LIBRARY NAMES panelw HINTS ${LIBRARY_HINTS} ${NCURSES_BASE}/lib ${LIBRARY_BASE}/lib)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(PANEL DEFAULT_MSG PANEL_LIBRARY PANEL_INCLUDE_DIR)

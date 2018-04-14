@@ -14,6 +14,7 @@
 #include <panel.h>
 #include <events.h>
 #include <pthread.h>
+#include <stdint.h>
 
 /* Data Structures */
 struct Panel_s;

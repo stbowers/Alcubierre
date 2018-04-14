@@ -52,20 +52,17 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     # macOS settings
     add_definitions(-D__MACOS__)
     add_definitions(-D__UNIX__)
-    set(CMAKE_C_FLAGS "-std=c++11 -stdlib=libc++ -g")
+    set(CMAKE_C_FLAGS "-Wall -g -lm -finput-charset=UTF-8 -pthread")
     
     # LIBRARY_BASE is where all our custom find{package}.cmake files will look for the libraries, after all local locations
     set(LIBRARY_BASE /opt/local)
-    set(GLFW_BASE /usr/local)
 
     # Load packages for libraries we use
-    find_package(OpenGL)
-    find_package(GLFW)
-    find_package(lua)
-    find_package(boost_system)
-    find_package(boost_filesystem)
-    set(PROJECT_LIBRARIES ${OPENGL_LIBRARY} ${GLFW_LIBRARY} ${LUA_LIBRARY} ${BOOST_SYSTEM_LIBRARY} ${BOOST_FILESYSTEM_LIBRARY})
-    set(PROJECT_INCLUDE_DIRS ${OPENGL_INCLUDE_DIR} ${GLFW_INCLUDE_DIR} ${LUA_INCLUDE_DIR} ${BOOST_SYSTEM_INCLUDE_DIR} ${BOOST_FILESYSTEM_INCLUDE_DIR})
+    find_package(ncurses)
+    find_package(panel)
+    find_package(ZLIB)
+    set(PROJECT_LIBRARIES ${NCURSES_LIBRARY} ${PANEL_LIBRARY} ${ZLIB_LIBRARY})
+    set(PROJECT_INCLUDE_DIRS ${NCURSES_INCLUDE_DIR} ${PANEL_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
 endif()
 
 # Set up include directories for header files

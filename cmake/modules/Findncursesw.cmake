@@ -13,7 +13,7 @@ endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(LIBRARY_HINTS ${PROJECT_SOURCE_DIR}/lib/macOS)
 endif()
-find_library(NCURSES_LIBRARY NAMES ncurses HINTS ${LIBRARY_HINTS} ${NCURSES_BASE}/lib ${LIBRARY_BASE}/lib)
+find_library(NCURSES_LIBRARY NAMES ncursesw HINTS ${LIBRARY_HINTS} ${NCURSES_BASE}/lib ${LIBRARY_BASE}/lib)
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(NCURSES DEFAULT_MSG NCURSES_LIBRARY NCURSES_INCLUDE_DIR)
