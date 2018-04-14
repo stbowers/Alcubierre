@@ -31,11 +31,15 @@ void testEventHandler(Object* self, const Event* e){
     }
 }
 
+Panel* infoPanel = NULL;
 int main(){
     /* Run some tests before starting the engine */
     //AXPFile* animation1 = getAXPFile("./animation1.axp");
     //printf("AXP loaded...\nVersion: %d\nFPS: %d\nXP Version: %d\nFrames: %d\n", animation1->version, animation1->fps, animation1->xpFile->version, animation1->xpFile->numLayers);
-
+    
+    printf("Waiting to allow a debugger to be attached... Press enter to continue...");
+    getchar();
+    
     setlocale(LC_CTYPE, "");
     // Our game runs in a 128x72 (16:9) window
     // start the engine as 130x74, to give room for the border
@@ -153,8 +157,7 @@ int main(){
         // create keyboard input event if key pressed
         if (input != ERR){
             // Event's aren't working correctly right now, so just process user input manually
-            static Panel* newPanel = NULL;
-            if (newPanel == NULL){
+            if (infoPanel == NULL){
                 int width = 100;
                 int height = 50;
                 // center the panel
@@ -168,24 +171,24 @@ int main(){
                 box(borderPanel->window, 0, 0);
 
                 // Create content panel
-                newPanel = createPanel(width, height, xpos, ypos, 10);
-                engine->mainPanel->addObject(engine->mainPanel, (Object*)newPanel);
+                infoPanel = createPanel(width, height, xpos, ypos, 10);
+                engine->mainPanel->addObject(engine->mainPanel, (Object*)infoPanel);
             }
 
             switch (toupper(input)){
                 case 'P':
-                    mvwprintw(newPanel->window, 0, 0, "Game still in development...");
-                    mvwprintw(newPanel->window, 1, 0, "Press q or e to exit...");
+                    mvwprintw(infoPanel->window, 0, 0, "Game still in development...");
+                    mvwprintw(infoPanel->window, 1, 0, "Press q or e to exit...");
                     break;
                 case 'I':
-                    mvwprintw(newPanel->window, 0, 0, "----HOW TO PLAY----");
-                    mvwprintw(newPanel->window, 1, 0, "Game is still in development, and the controls have not been worked out.");
-                    mvwprintw(newPanel->window, 2, 0, "Press q or e to exit...");
+                    mvwprintw(infoPanel->window, 0, 0, "----HOW TO PLAY----");
+                    mvwprintw(infoPanel->window, 1, 0, "Game is still in development, and the controls have not been worked out.");
+                    mvwprintw(infoPanel->window, 2, 0, "Press q or e to exit...");
                     break;
                 case 'B':
-                    mvwprintw(newPanel->window, 0, 0, "Backstory: ");
-                    mvwprintw(newPanel->window, 1, 0, "(Press q or e to exit)");
-                    mvwprintw(newPanel->window, 2, 0, "It has been 150 years since the first invasion of the aliens, and the future of humanity looks bleak.\n"
+                    mvwprintw(infoPanel->window, 0, 0, "Backstory: ");
+                    mvwprintw(infoPanel->window, 1, 0, "(Press q or e to exit)");
+                    mvwprintw(infoPanel->window, 2, 0, "It has been 150 years since the first invasion of the aliens, and the future of humanity looks bleak.\n"
                             "However, the rebels finally have secured a key peice of technology that they think will help them win the fight.\n"
                             "This device somehow weakens the alien shields, potentially giving the rebels a way to inflict large ammounts of damage on key locations.\n"
                             "You have been tasked with piloting the RSS Alcubbiere - a scouting vessel with limited fighting capability - to various locations "
