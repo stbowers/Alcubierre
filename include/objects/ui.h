@@ -28,8 +28,16 @@
  * selection color, while unselected options are boxed with square brackets
  * [] and colored with the normal text coloring
  */
-Panel* createSelectionWindow();
-void destroySelectionWindow();
+
+typedef struct SelectionWindowData_s{
+    Panel* panel;
+    const char** list;
+    const char* keys;
+    int numOptions;
+} SelectionWindowData;
+
+GameObject* createSelectionWindow(const char** list, const char* keys, int numOptions, int xpos, int ypos);
+void destroySelectionWindow(GameObject* selectionWindow);
 
 /* */
 

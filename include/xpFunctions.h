@@ -7,6 +7,9 @@
  */
 /* Defines functionality to load an xp file - the native file format of REXPaint, an ascii art editor */
 
+#ifndef __XPFUNCTIONS_H__
+#define __XPFUNCTIONS_H_
+
 #include <engine.h>
 #include <panel.h>
 #include <inttypes.h>
@@ -91,3 +94,5 @@ void freeAXPFile(AXPFile* file);
  *      instant compared to painting a whole layer)
  */
 void drawLayerToPanel(XPLayer* layer, Panel* panel, bool clearPanel);
+
+#endif //__XPFUNCTIONS_H__

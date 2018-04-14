@@ -14,7 +14,9 @@
 void defaultRefreshPanel(Panel* self);
 void defaultClearPanel(Panel* self);
 void defaultAddObject(Panel* self, Object* newObject);
-void defaultDrawPanel(Object* self);
+void defaultDrawPanel(Object* self, Panel* panel);
+void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, const Event* event), Object* listener);
+void defaultPanelHandleEvent(Object* self, Event* event);
 
 /* engine.h impementation */
 
@@ -29,11 +31,13 @@ Panel* createPanel(int width, int height, int x, int y, int z){
     newPanel->objectProperties.y = y;
     newPanel->objectProperties.z = z;
     newPanel->objectProperties.drawObject = defaultDrawPanel;
+    newPanel->objectProperties.handleEvent = defaultPanelHandleEvent;
 
     /* Assign function pointers */
     newPanel->refreshPanel = defaultRefreshPanel;
     newPanel->clearPanel = defaultClearPanel;
     newPanel->addObject = defaultAddObject;
+    newPanel->registerEventListener = defaultPanelAddListener;
 
     /* Create ncurses window */
     newPanel->window = newwin(height, width, y, x);
@@ -48,11 +52,11 @@ Panel* createPanel(int width, int height, int x, int y, int z){
 /* default functions implementation */
 
 void defaultRefreshPanel(Panel* self){
-
+    update_panels();
 }
 
 void defaultClearPanel(Panel* self){
-
+    wclear(self->window);
 }
 
 void defaultAddObject(Panel* self, Object* newObject){
@@ -83,11 +87,36 @@ void defaultAddObject(Panel* self, Object* newObject){
     newObject->next = current;
 }
 
-void defaultDrawPanel(Object* self){
+void defaultDrawPanel(Object* self, Panel* panel){
+    /* Put this panel on top of the panel stack */
+    top_panel(((Panel*)self)->panel);
+
     /* Crawl list of objects, drawing each */
     Object* current = ((Panel*)self)->childrenList;
     while (current != NULL){
-        current->drawObject(current);
+        current->drawObject(current, (Panel*)self);
+        current = current->next;
+    }
+}
+
+void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, const Event* event), Object* listener){
+    *self->nextListener = (EventListener*) malloc(sizeof(EventListener));
+    (*self->nextListener)->mask = mask;
+    (*self->nextListener)->handleEvent = handleEvent;
+    (*self->nextListener)->listener = listener;
+    (*self->nextListener)->next = NULL;
+    
+    self->nextListener = &(*self->nextListener)->next;
+}
+
+void defaultPanelHandleEvent(Object* self, Event* event){
+    // move through list, send event to each listener if the mask matches
+    EventListener* current = ((Panel*)self)->listeners;
+    while (current != NULL){
+        if (event->eventType.mask & current->mask.mask){
+            current->handleEvent(current->listener, event);
+        }
+
         current = current->next;
     }
 }

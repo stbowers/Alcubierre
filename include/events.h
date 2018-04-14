@@ -10,7 +10,11 @@
 #define __EVENTS_H__
 
 /* Event Structure */
-/* Two fields:
+/* NOTE: this structure should always be allocated on the heap with malloc,
+ * since it will be shared between threads and the memory may be read and
+ * modified after the stack has been poped on the original thread.
+ *
+ * Two fields:
  *      eventType - 4 bytes - describes the type of event
  *      eventData - void pointer - points to data for event
  * eventType:
@@ -29,20 +33,24 @@
  *      types of event.
  * eventData:
  *      can point to any kind of data, depending on the type of
- *      event
+ *      event. This should never be the only reference to a pointer
+ *      returned by malloc, since no effort is made to free this
+ *      memory when freeing the memory for an event
  */
-typedef struct event{
-    union {
-        unsigned int mask;
-        struct {
-            /* Each value is a 1 bit boolean */
-            /* Up to 32 types can be specified */
-            unsigned int keyboardEvent  : 1;
-            unsigned int gameMsgEvent   : 1;
-            unsigned int timerEvent     : 1;
-        } values;
-    } eventType;
+typedef union EventTypeMask_u{
+    unsigned int mask;
+    struct {
+        /* Each value is a 1 bit boolean */
+        bool keyboardEvent :1;
+        bool gameMsgEvent  :1;
+        bool timerEvent    :1;
+    } values;
+} EventTypeMask;
+
+typedef struct Event_s{
+    EventTypeMask eventType;
     void* eventData;
+    struct Event_s* next; // Used to make a linked list event queue
 } Event;
 
 /* Event type masks */

@@ -15,10 +15,8 @@
 #include <events.h>
 #include <pthread.h>
 
-#define MS_PER_TICK 10 // how many milliseconds corrospond to one tick - tickrate (10ms/tick ~= 100 ticks per second)
-#define MS_PER_FRAME 10 // how many milliseconds corrospond to one frame - framerate
-
 /* Data Structures */
+struct Panel_s;
 
 /* Object structure, holds all data common to 'objects'
  * for the engine. Objects are anything that is drawn
@@ -49,8 +47,8 @@ typedef struct Object_s{
     int z;
 
     /* Object Functions */
-    // Draw the object, called from the render thread
-    void (*drawObject)(struct Object_s* self);
+    // Draw the object to the given panel, called from the render thread
+    void (*drawObject)(struct Object_s* self, struct Panel_s* panel);
 
     // Handle an event, called from the events thread
     /* NOTE: any intensive processing that needs to be
@@ -58,11 +56,18 @@ typedef struct Object_s{
      * another thread, so that it doesn't hold up the
      * event thread.
      */
-    void (*handleEvent)(struct Object_s* self, const Event* event);
+    void (*handleEvent)(struct Object_s* self, Event* event);
 
     // Update the object's data. Called once per 'tick' from the main game loop
     void (*update)(struct Object_s* self);
 } Object;
+
+typedef struct EventListener_s{
+    EventTypeMask mask;
+    void (*handleEvent)(Object* self, const Event* event);
+    Object* listener;
+    struct EventListener_s* next;
+} EventListener;
 
 // Structure to hold data for an ncurses panel
 typedef struct Panel_s{
@@ -74,6 +79,11 @@ typedef struct Panel_s{
     
     /* Window this panel is attached to */
     WINDOW* window;
+
+    /* Event delegation */
+    EventListener* listeners;
+    EventListener** nextListener;
+    void (*registerEventListener)(struct Panel_s* self, EventTypeMask mask, void (*handleEvent)(Object* self, const Event* event), Object* listener);
 
     /* Custom window functions */
     /* Called when the window needs to be refreshed,
@@ -99,6 +109,12 @@ typedef struct Engine_s{
     /* The main window for the engine */
     Panel* mainPanel;
 
+    /* Panel controlling the stdscr window, not the same as mainPanel
+     * We don't need the extra functionality of our panel struct, so
+     * just use an ncurses panel.
+     */
+    PANEL* stdPanel;
+
     /* The window currently receiving event notifications from the engine */
     /* Only one active window is specified in order to avoid conflicts from
      * several parts of the game wanting to handle specific events. Windows
@@ -109,7 +125,7 @@ typedef struct Engine_s{
     /* Event handler */
     /* Called for every event at the start of the game loop
      */
-    void (*handleEvent)(struct Engine_s* self, const Event* event);
+    void (*handleEvent)(struct Engine_s* self, Event* event);
 
     /* Threads */
     /* The event thread runs continuously on the same tickrate as the game
@@ -117,6 +133,13 @@ typedef struct Engine_s{
      * of sync, but they should *on average* loop at the same tick rate.
      */
     pthread_t eventThread;
+    struct EventThreadData_s{
+        pthread_mutex_t dataMutex;
+        pthread_cond_t newEventSignal;
+        Event* queuedEvents;
+        Event** queueEnd; // pointer to the pointer that should be set to add a new event to the end of the queue (the last node's ->next, or the start if queue is empty)
+        bool runEventThread;
+    } eventThreadData;
 
     /* The game thread runs continously on a tickrate defined by MS_PER_TICK
      * which determines how long a tick should last. Assuming MS_PER_TICK
@@ -132,9 +155,18 @@ typedef struct Engine_s{
      */
     pthread_t renderThread;
     struct RenderThreadData_s{
-        pthread_mutex_t dataMutex; // Threads should only read or write the data in this struct if they hold the lock for this mutex
+        pthread_mutex_t dataMutex;
+
+        /* dataMutex resources */
         bool render; // should the render thread be rendering right now?
+        int fps_calculated; // The current fps being rendered
         pthread_cond_t renderSignal; // Used to signal a change in render to the render thread
+        /* end of dataMutex resources */
+
+        pthread_mutex_t timerMutex;
+        /* timerMutex resources */
+        pthread_cond_t timerSignal;
+        /* end of timerMutex resources */
     } renderThreadData;
 
     /* Global thread data
@@ -143,9 +175,10 @@ typedef struct Engine_s{
     struct GlobalThreadData_s{
         pthread_mutex_t dataMutex;
         /* bool to hold if the engine is currently running. If false,
-         * threads shutdown
+         * threads should shutdown
          */
         bool isRunning;
+        pthread_cond_t exitSignal; // signaled when isRunning is set to false (should broadcast, since multiple threads _might_ be waiting on this)
     } globalThreadData;
 } Engine;
 
@@ -159,13 +192,11 @@ typedef struct GameObject_s{
     uint64_t timeCreated;
 
     /* Custom Behaviour */
-    /* The user can put any data they wish into
-     * userData, and it will be passed to the
-     * update function, which is called in the
-     * main game loop.
+    /* The user can put any data they wish into userData,
+     * which will be available whenever a refernce to the
+     * game object is held.
      */
     void* userData;
-    void (*update)(struct GameObject_s* self, void* userData);
 } GameObject;
 
 /* Methods */

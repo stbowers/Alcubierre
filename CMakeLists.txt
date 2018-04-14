@@ -36,7 +36,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     # GNU/Linux settings
     add_definitions(-D__LINUX__)
     add_definitions(-D__UNIX__)
-    set(CMAKE_C_FLAGS "-Wall -g -finput-charset=UTF-8")
+    set(CMAKE_C_FLAGS "-Wall -g -lm -finput-charset=UTF-8 -pthread")
 
     # LIBRARY_BASE is where all our custom find{package}.cmake files will look for the libraries, after all local locations
     set(LIBRARY_BASE /usr)
