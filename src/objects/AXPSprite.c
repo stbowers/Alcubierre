@@ -28,6 +28,10 @@ GameObject* createAXPSprite(AXPFile* texture, int xpos, int ypos){
     newObject->objectProperties.next = NULL;
     newObject->objectProperties.previous = NULL;
     newObject->objectProperties.type = OBJECT_GAMEOBJECT;
+    newObject->objectProperties.x = xpos;
+    newObject->objectProperties.y = ypos;
+    newObject->objectProperties.z = 1;
+    newObject->objectProperties.show = true;
 
     /* Game Object properties */
     newObject->timeCreated = getTimems();

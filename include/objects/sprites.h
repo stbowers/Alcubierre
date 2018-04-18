@@ -30,10 +30,8 @@ typedef struct XPSpriteData_s{
     XPSpriteTextureData* textureData; // Optimized data for rendering
 } XPSpriteData;
 
-GameObject* createXPSprite(XPFile* texture, int xpos, int ypos);
+GameObject* createXPSprite(XPFile* texture, int xpos, int ypos, int z);
 void destroyXPSprite(GameObject* sprite);
-// Move the sprite to absolute coordinates x, y
-void moveXPSprite(GameObject* self, int x, int y);
 
 /* AXP Sprite - animated sprite */
 
@@ -51,6 +49,5 @@ typedef struct AXPSpriteData_s{
 
 GameObject* createAXPSprite(AXPFile* texture, int xpos, int ypos);
 void destroyAXPSprite(GameObject* sprite);
-void moveAXPSprite(GameObject* self, int x, int y);
 
 #endif //__SPRITE_H_

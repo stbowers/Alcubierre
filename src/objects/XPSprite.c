@@ -13,10 +13,11 @@
 /* GameObject functions */
 void XPSpriteUpdate(Object* self);
 void XPSpriteDraw(Object* self, Panel* panel);
+void moveXPSprite(Object* self, int absX, int absY);
 
 /* Implementation of sprites.h functions */
 
-GameObject* createXPSprite(XPFile* texture, int xpos, int ypos){
+GameObject* createXPSprite(XPFile* texture, int xpos, int ypos, int z){
     /* Create Game Object */
     GameObject* newObject = (GameObject*)malloc(sizeof(GameObject));
     newObject->timeCreated = getTimems();
@@ -30,7 +31,10 @@ GameObject* createXPSprite(XPFile* texture, int xpos, int ypos){
     newObject->objectProperties.type = OBJECT_GAMEOBJECT;
     newObject->objectProperties.x = xpos;
     newObject->objectProperties.y = ypos;
-    newObject->objectProperties.z = 0;
+    newObject->objectProperties.z = z;
+    newObject->objectProperties.parent = NULL;
+    newObject->objectProperties.moveAbsolute = moveXPSprite;
+    newObject->objectProperties.show = true;
 
     /* Game Object properties */
     XPSpriteData* data = (XPSpriteData*) malloc(sizeof(XPSpriteData));
@@ -48,19 +52,18 @@ GameObject* createXPSprite(XPFile* texture, int xpos, int ypos){
         drawLayerToPanel(&texture->layers[layer], data->textureData->panel, false); 
     }
 
-    /* Move the sprite */
-    moveXPSprite(newObject, xpos, ypos);
-
     return newObject;
 }
 
 void destroyXPSprite(GameObject* sprite){
+    free(((XPSpriteData*)sprite->userData)->textureData);
+    free(sprite->userData);
     free(sprite);
 }
 
-void moveXPSprite(GameObject* self, int x, int y){
-    XPSpriteData* data = (XPSpriteData*)self->userData;
-    move_panel(data->textureData->panel->panel, x, y);
+void moveXPSprite(Object* self, int x, int y){
+    XPSpriteData* data = (XPSpriteData*)((GameObject*)self)->userData;
+    move_panel(data->textureData->panel->panel, y, x);
 }
 
 /* Implementation of custom functions */

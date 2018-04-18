@@ -6,8 +6,10 @@
  * Licensed under the MIT License (see LICENSE.txt)
  */
 /* Provides implementation for miscellaneous functionality in engine.h */
-#include <time.h>
+// define required for unicode ncurses support
+#define _XOPEN_SOURCE_EXTENDED
 #include <ncurses.h>
+#include <time.h>
 #include <stdlib.h>
 #include <engine.h>
 #include <pthread.h>
@@ -35,6 +37,8 @@ void* renderTimerThreadFunction(void* data);
 Engine* initializeEngine(int width, int height){
     /* Create new engine - freed by destroyEngine() method */
     Engine* newEngine = (Engine*) malloc(sizeof(Engine));
+    newEngine->width = width;
+    newEngine->height = height;
 
     /* Initialize ncurses */
     initscr();
@@ -48,8 +52,8 @@ Engine* initializeEngine(int width, int height){
      */
     refresh();
 
-    // Check the size of the terminal window
-    if (!((COLS > width) && (LINES > height))){
+    // Check the size of the terminal window is large enough for a widthxheight window with 1 wide border
+    if (!((COLS > (width + 2)) && (LINES > (height + 2)))){
         /* We don't have enough space.
          * Exit for now, a potential solution in the
          * future might be to attempt to open a new
@@ -70,7 +74,9 @@ Engine* initializeEngine(int width, int height){
     /* Create the main window */
     int start_x = (int)((COLS - width) / 2.0f);
     int start_y = (int)((LINES - height) / 2.0f);
-    newEngine->mainPanel = createPanel(width, height, start_x, start_y, 0);
+    // create two wider & two higher, and move up & left one for border
+    newEngine->mainPanel = createPanel(width + 2, height + 2, start_x-1, start_y-1, 0);
+    newEngine->mainPanel->objectProperties.moveAbsolute((Object*)newEngine->mainPanel, start_x - 1, start_y - 1);
     newEngine->activePanel = newEngine->mainPanel;
 
     /* Redefine main window functions */
@@ -110,6 +116,34 @@ void destroyEngine(Engine* engine){
     free(engine->mainPanel);
     endwin();
     free(engine);
+}
+
+// Used by moveRelativeTo to get the absolute coordinates
+void getAbsoluteCoordinates(Object* relativeTo, int relX, int relY, int* absX, int* absY){
+    /* add relX and relY to the given object's x and y */
+    int newX = relativeTo->x + relX;
+    int newY = relativeTo->y + relY;
+
+    /* If the given object has a parent, we need to convert 
+     * the new coordinates relative to the parent
+     */
+    if (relativeTo->parent != NULL){
+       getAbsoluteCoordinates(relativeTo->parent, newX, newY, absX, absY); 
+    } else {
+        // if given object doen't have a parent, we can assume newX and newY are absolute
+        *absX = newX;
+        *absY = newY;
+    }
+}
+
+// Move the given object relative to the position of another object
+void moveRelativeTo(Object* toMove, Object* relativeTo, int relX, int relY){
+    /* Get absolute coordiantes */
+    int absX, absY;
+    getAbsoluteCoordinates(relativeTo, relX, relY, &absX, &absY);
+
+    /* Call the object's move function */
+    toMove->moveAbsolute(toMove, absX, absY);
 }
 
 /* Gets a timestamp in milliseconds, from a monotonic clock.

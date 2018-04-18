@@ -10,15 +10,17 @@
 #include <engine.h>
 #include <objects/ui.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* SelectionWindow functions */
 void drawSelectionWindow(Object* self, Panel* panel);
 void updateSelectionWindow(Object* self);
 void selectionWindowHandleEvents(Object* self, Event* event);
+void moveSelectionWindow(Object* self, int x, int y);
 
 /* ui.h implementation */
 
-GameObject* createSelectionWindow(const char** list, const char* keys, int numOptions, int xpos, int ypos){
+GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback* callbacks, int numOptions, int xpos, int ypos, Engine* engine){
     /* Create new game object */
     GameObject* newObject = (GameObject*) malloc(sizeof(GameObject));
     newObject->timeCreated = getTimems();
@@ -33,6 +35,9 @@ GameObject* createSelectionWindow(const char** list, const char* keys, int numOp
     newObject->objectProperties.x = xpos;
     newObject->objectProperties.y = ypos;
     newObject->objectProperties.z = 1;
+    newObject->objectProperties.parent = NULL;
+    newObject->objectProperties.moveAbsolute = moveSelectionWindow;
+    newObject->objectProperties.show = true;
 
     /* Initialize SelectionWindowData */
     SelectionWindowData* data = (SelectionWindowData*) malloc(sizeof(SelectionWindowData));
@@ -42,12 +47,21 @@ GameObject* createSelectionWindow(const char** list, const char* keys, int numOp
     int height = numOptions;
     data->panel = createPanel(width, height, xpos, ypos, 1);
     data->panel->objectProperties.handleEvent = selectionWindowHandleEvents;
-    data->list = list;
-    data->keys = keys;
     data->numOptions = numOptions;
+    
+    // Since we're passed pointers that we don't control the memory of, we need to allocate new space on the heap and copy the data over
+    data->list = (char**) malloc(sizeof(char*) * numOptions);
+    memcpy(data->list, list, sizeof(char*) * numOptions);
+    data->keys = (char*) malloc(sizeof(char) * numOptions);
+    memcpy(data->keys, keys, sizeof(char*) * numOptions);
+    data->callbacks = (pfn_SelectionCallback*) malloc (sizeof(pfn_SelectionCallback) * numOptions);
+    memcpy(data->callbacks, callbacks, sizeof(pfn_SelectionCallback) * numOptions);
 
     /* Register to receive events */
-
+    EventTypeMask typeMask;
+    typeMask.mask = 0; // initialize mask - set all feilds to 0
+    typeMask.values.keyboardEvent = 1; // we're interested in keyboard events
+    engine->mainPanel->registerEventListener(engine->mainPanel, typeMask, selectionWindowHandleEvents, (Object*)newObject);
 
     /* Draw options to panel */
     for (int opt = 0; opt < numOptions; opt++){
@@ -58,6 +72,15 @@ GameObject* createSelectionWindow(const char** list, const char* keys, int numOp
 }
 
 void destroySelectionWindow(GameObject* selectionWindow){
+    SelectionWindowData* data = (SelectionWindowData*) selectionWindow->userData;
+
+    // free memory allocated inside data
+    free(data->list);
+    free(data->keys);
+    free(data->callbacks);
+
+    // free data
+    free(data);
     free(selectionWindow);
 }
 
@@ -73,12 +96,17 @@ void updateSelectionWindow(Object* self){
 }
 
 void selectionWindowHandleEvents(Object* self, Event* event){
-    /* NOTE: For testing purposes this is currently being called as a panel
-     * object, so self refers to data->panel, not the actual game object.
-     * This doesn't matter for us right now.
-     */
-    // Test - print char if event is keyboard event
-    if (event->eventType.values.keyboardEvent){
-        mvwprintw(((Panel*)self)->window, 0, 0, "%c", *((char*)event->eventData));
+    SelectionWindowData* data = (SelectionWindowData*)((GameObject*)self)->userData;
+    // we assume event is a key event here, so data is the char
+    char ch = *(char*)event->eventData;
+    for (int i = 0; i < data->numOptions; i++){
+        if (ch == data->keys[i]){
+            data->callbacks[i]();
+        }
     }
+}
+
+void moveSelectionWindow(Object* self, int x, int y){
+    SelectionWindowData* data = (SelectionWindowData*)((GameObject*)self)->userData;
+    move_panel(data->panel->panel, y, x);
 }

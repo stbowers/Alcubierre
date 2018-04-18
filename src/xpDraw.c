@@ -42,14 +42,50 @@ wchar_t getUTF8CharForCP437Value(int value){
         for (int i = 0; i < 128; i++){
             CP437_UTF8_CODE[i] = (char)i;
         }
+
+        /* Code points 1-31 and 127 are ASCII control characters
+         * but represent graphical characters for our use
+         */
+        CP437_UTF8_CODE[1] = L'?';
+        CP437_UTF8_CODE[2] = L'?';
+        CP437_UTF8_CODE[3] = L'?';
+        CP437_UTF8_CODE[4] = L'?';
+        CP437_UTF8_CODE[5] = L'?';
+        CP437_UTF8_CODE[6] = L'?';
+        CP437_UTF8_CODE[7] = L'?';
+        CP437_UTF8_CODE[8] = L'?';
+        CP437_UTF8_CODE[9] = L'?';
+        CP437_UTF8_CODE[10] = L'?';
+        CP437_UTF8_CODE[11] = L'?';
+        CP437_UTF8_CODE[12] = L'?';
+        CP437_UTF8_CODE[13] = L'?';
+        CP437_UTF8_CODE[14] = L'?';
+        CP437_UTF8_CODE[15] = L'?';
+        CP437_UTF8_CODE[16] = L'?';
+        CP437_UTF8_CODE[17] = L'?';
+        CP437_UTF8_CODE[18] = L'?';
+        CP437_UTF8_CODE[19] = L'?';
+        CP437_UTF8_CODE[20] = L'?';
+        CP437_UTF8_CODE[21] = L'?';
+        CP437_UTF8_CODE[22] = L'?';
+        CP437_UTF8_CODE[23] = L'?';
+        CP437_UTF8_CODE[24] = L'?';
+        CP437_UTF8_CODE[25] = L'?';
+        CP437_UTF8_CODE[26] = L'?';
+        CP437_UTF8_CODE[27] = L'?';
+        CP437_UTF8_CODE[28] = L'?';
+        CP437_UTF8_CODE[29] = L'?';
+        CP437_UTF8_CODE[30] = L'?';
+        CP437_UTF8_CODE[31] = L'?';
+        CP437_UTF8_CODE[127] = L'?';
         
         /* The rest of the chars (128-256) are set to ?
          * to indicate that the proper value hasn't been
          * assigned - the ? will be overwritten by other
          * assignments.
          */
-        for (int i = 128; i < 257; i++){
-            CP437_UTF8_CODE[i] = '?';
+        for (int i = 0; i < 128; i++){
+            CP437_UTF8_CODE[i+128] = '?';
         }
 
         /* Manually entered unicode conversions */

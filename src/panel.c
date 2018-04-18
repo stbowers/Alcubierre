@@ -14,9 +14,11 @@
 void defaultRefreshPanel(Panel* self);
 void defaultClearPanel(Panel* self);
 void defaultAddObject(Panel* self, Object* newObject);
+void defaultRemoveObject(Panel* self, Object* toRemove);
 void defaultDrawPanel(Object* self, Panel* panel);
-void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, const Event* event), Object* listener);
+void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, Event* event), Object* listener);
 void defaultPanelHandleEvent(Object* self, Event* event);
+void defaultMovePanel(Object* self, int absX, int absY);
 
 /* engine.h impementation */
 
@@ -30,6 +32,9 @@ Panel* createPanel(int width, int height, int x, int y, int z){
     newPanel->objectProperties.x = x;
     newPanel->objectProperties.y = y;
     newPanel->objectProperties.z = z;
+    newPanel->objectProperties.parent = NULL;
+    newPanel->objectProperties.moveAbsolute = defaultMovePanel;
+    newPanel->objectProperties.show = true;
     newPanel->objectProperties.drawObject = defaultDrawPanel;
     newPanel->objectProperties.handleEvent = defaultPanelHandleEvent;
 
@@ -37,7 +42,12 @@ Panel* createPanel(int width, int height, int x, int y, int z){
     newPanel->refreshPanel = defaultRefreshPanel;
     newPanel->clearPanel = defaultClearPanel;
     newPanel->addObject = defaultAddObject;
+    newPanel->removeObject = defaultRemoveObject;
     newPanel->registerEventListener = defaultPanelAddListener;
+
+    /* Set up event listener list */
+    newPanel->listeners = NULL;
+    newPanel->nextListener = &newPanel->listeners; // next listener should be put at newPanel->listeners
 
     /* Create ncurses window */
     newPanel->window = newwin(height, width, y, x);
@@ -47,6 +57,10 @@ Panel* createPanel(int width, int height, int x, int y, int z){
 
     /* Return new panel */
     return newPanel;
+}
+
+void destroyPanel(Panel* panel){
+    free(panel);
 }
 
 /* default functions implementation */
@@ -60,6 +74,11 @@ void defaultClearPanel(Panel* self){
 }
 
 void defaultAddObject(Panel* self, Object* newObject){
+    /* Set self as parent to newObject */
+    newObject->parent = (Object*)self;
+    /* Move newObject relative to self */
+    moveRelativeTo(newObject, (Object*)self, newObject->x, newObject->y);
+
     /* If our list of children is empty, simply assign newObject as the start of the list */
     if (self->childrenList == NULL){
         self->childrenList = newObject;
@@ -87,6 +106,22 @@ void defaultAddObject(Panel* self, Object* newObject){
     newObject->next = current;
 }
 
+void defaultRemoveObject(Panel* self, Object* toRemove){
+    /* traverse list looking for toRemove */
+    Object* current = self->childrenList;
+    Object** previousPointer = &self->childrenList;
+    while (current != NULL){
+        if (current == toRemove){
+            // if a match is found, remove it from the list.
+            *previousPointer = current->next;
+            current->next = NULL;
+            return;
+        }
+        previousPointer = &current->next;
+        current = current->next;
+    }
+}
+
 void defaultDrawPanel(Object* self, Panel* panel){
     /* Put this panel on top of the panel stack */
     top_panel(((Panel*)self)->panel);
@@ -94,12 +129,14 @@ void defaultDrawPanel(Object* self, Panel* panel){
     /* Crawl list of objects, drawing each */
     Object* current = ((Panel*)self)->childrenList;
     while (current != NULL){
-        current->drawObject(current, (Panel*)self);
+        if (current->show){
+            current->drawObject(current, (Panel*)self);
+        }
         current = current->next;
     }
 }
 
-void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, const Event* event), Object* listener){
+void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, Event* event), Object* listener){
     *self->nextListener = (EventListener*) malloc(sizeof(EventListener));
     (*self->nextListener)->mask = mask;
     (*self->nextListener)->handleEvent = handleEvent;
@@ -117,6 +154,25 @@ void defaultPanelHandleEvent(Object* self, Event* event){
             current->handleEvent(current->listener, event);
         }
 
+        current = current->next;
+    }
+}
+
+void defaultMovePanel(Object* self, int absX, int absY){
+    /* Move this panel */
+    move_panel(((Panel*)self)->panel, absY, absX);
+
+    /* Move children */
+    Object* current = ((Panel*)self)->childrenList;
+    while (current != NULL){
+        /* Calculate child's x and y */
+        int x = absX + current->x;
+        int y = absY + current->y;
+
+        /* Move the child object */
+        current->moveAbsolute(current, x, y);
+
+        /* Move through list */
         current = current->next;
     }
 }

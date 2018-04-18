@@ -14,7 +14,6 @@
 #include <panel.h>
 #include <events.h>
 #include <pthread.h>
-#include <stdint.h>
 
 /* Data Structures */
 struct Panel_s;
@@ -46,10 +45,17 @@ typedef struct Object_s{
     int x,y;
     // Object's z order (for sorting lists before drawing)
     int z;
+    // Parent object the x and y coordinates are relative to
+    struct Object_s* parent;
+    // If false don't render the object
+    bool show;
 
     /* Object Functions */
     // Draw the object to the given panel, called from the render thread
     void (*drawObject)(struct Object_s* self, struct Panel_s* panel);
+
+    // Move the object to the absolute coordinates on the screen
+    void (*moveAbsolute)(struct Object_s* self, int xpos, int ypos);
 
     // Handle an event, called from the events thread
     /* NOTE: any intensive processing that needs to be
@@ -65,7 +71,7 @@ typedef struct Object_s{
 
 typedef struct EventListener_s{
     EventTypeMask mask;
-    void (*handleEvent)(Object* self, const Event* event);
+    void (*handleEvent)(Object* self, Event* event);
     Object* listener;
     struct EventListener_s* next;
 } EventListener;
@@ -84,7 +90,7 @@ typedef struct Panel_s{
     /* Event delegation */
     EventListener* listeners;
     EventListener** nextListener;
-    void (*registerEventListener)(struct Panel_s* self, EventTypeMask mask, void (*handleEvent)(Object* self, const Event* event), Object* listener);
+    void (*registerEventListener)(struct Panel_s* self, EventTypeMask mask, void (*handleEvent)(Object* self, Event* event), Object* listener);
 
     /* Custom window functions */
     /* Called when the window needs to be refreshed,
@@ -100,6 +106,10 @@ typedef struct Panel_s{
     /* Adds an object to this panel
      */
     void (*addObject)(struct Panel_s* self, Object* newObject);
+
+    /* Removes an object
+     */
+    void (*removeObject)(struct Panel_s* self, Object* toRemove);
 
     /* Linked list of children (Objects that draw to this panel)*/
     Object* childrenList;
@@ -122,6 +132,9 @@ typedef struct Engine_s{
      * can, if they choose, forward events to other objects or windows.
      */
     Panel* activePanel;
+
+    /* width and height of main panel */
+    int width, height;
 
     /* Event handler */
     /* Called for every event at the start of the game loop
@@ -214,6 +227,15 @@ void destroyEngine(Engine* engine);
  */
 Panel* createPanel(int width, int height, int x, int y, int z);
 void destroyPanel(Panel* panel);
+
+/* Move the given object to coordinates relative to another object.
+ * Note: Normal use is to pass an object as toMove, and it's parent as relativeTo,
+ *  but the object can be moved relative to any other object in the game.
+ * Note: If the same object is passed to toMove and relativeTo, this function
+ *  effectively shifts the object to the right by relX and down by relY
+ *  (or left/up if negative)
+ */
+void moveRelativeTo(Object* toMove, Object* relativeTo, int relX, int relY);
 
 /* Returns a timestamp in milliseconds, from an undefined
  * starting time. (Monotonic clock)

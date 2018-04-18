@@ -7,7 +7,7 @@
  */
 /* Definitions for UI objects (base object type defined in engine.h) */
 #ifndef __UI_H__
-#define __UI_H_
+#define __UI_H__
 
 #include <engine.h>
 
@@ -29,14 +29,17 @@
  * [] and colored with the normal text coloring
  */
 
+typedef void(*pfn_SelectionCallback)();
+
 typedef struct SelectionWindowData_s{
     Panel* panel;
-    const char** list;
-    const char* keys;
+    char** list;
+    char* keys; // array of chars - not string
+    pfn_SelectionCallback* callbacks;
     int numOptions;
 } SelectionWindowData;
 
-GameObject* createSelectionWindow(const char** list, const char* keys, int numOptions, int xpos, int ypos);
+GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback* callbacks, int numOptions, int xpos, int ypos, Engine* engine);
 void destroySelectionWindow(GameObject* selectionWindow);
 
 /* */
