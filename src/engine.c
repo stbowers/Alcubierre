@@ -11,6 +11,7 @@
 #include <ncurses.h>
 #include <time.h>
 #include <stdlib.h>
+#include <string.h>
 #include <engine.h>
 #include <pthread.h>
 
@@ -28,6 +29,7 @@ void defaultEngineHandleEvent(Engine* self, Event* event);
 /* Thread functions */
 void* eventThreadFunction(void* data);
 void* renderThreadFunction(void* data);
+void* drawingThreadFunction(void* data);
 void* renderTimerThreadFunction(void* data);
 
 /* engine.h implementations */
@@ -41,16 +43,11 @@ Engine* initializeEngine(int width, int height){
     newEngine->height = height;
 
     /* Initialize ncurses */
-    initscr();
+    stdscr = initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
     start_color();
-    /* The refresh is used here because otherwise ncurses tends to pull
-     * stdscr above our actual screen whenever getch() is called, thus
-     * hiding anything we've drawn.
-     */
-    refresh();
 
     // Check the size of the terminal window is large enough for a widthxheight window with 1 wide border
     if (!((COLS > (width + 2)) && (LINES > (height + 2)))){
@@ -68,6 +65,34 @@ Engine* initializeEngine(int width, int height){
         exit(0);
     }
     
+    /* Set up screen buffers */
+    newEngine->stdscrWidth  = COLS;
+    newEngine->stdscrHeight = LINES;
+    newEngine->stdscrBufferSize = newEngine->stdscrWidth * newEngine->stdscrHeight * sizeof(cchar_t);
+    newEngine->stdscrBuffer1 = (cchar_t*) malloc(newEngine->stdscrBufferSize);
+    newEngine->stdscrBuffer2 = (cchar_t*) malloc(newEngine->stdscrBufferSize);
+    newEngine->backgroundBuffer = (cchar_t*) malloc(newEngine->stdscrBufferSize);
+
+    /* Fill background buffer */
+    for (int x = 0; x < newEngine->stdscrWidth; x++){
+        for (int y = 0; y < newEngine->stdscrHeight; y++){
+            cchar_t* currentChar = newEngine->backgroundBuffer + (newEngine->stdscrHeight * x) + y;
+            currentChar->attr = 0;
+            // clear char array
+            currentChar->chars[0] = L'\u2588';
+            currentChar->chars[1] = 0;
+            currentChar->chars[2] = 0;
+            currentChar->chars[3] = 0;
+            currentChar->chars[4] = 0;
+
+            currentChar->ext_color = 0;
+        }
+    }
+
+    /* Initialize buffers with background buffer data */
+    memcpy(newEngine->stdscrBuffer1, newEngine->backgroundBuffer, newEngine->stdscrBufferSize);
+    memcpy(newEngine->stdscrBuffer2, newEngine->backgroundBuffer, newEngine->stdscrBufferSize);
+
     /* Create stdscr panel */
     newEngine->stdPanel = new_panel(stdscr);
 
@@ -96,13 +121,22 @@ Engine* initializeEngine(int width, int height){
     newEngine->eventThreadData.runEventThread = true;
 
     // Render thread
-    pthread_create(&newEngine->renderThread, NULL, renderThreadFunction, newEngine);
     pthread_mutex_init(&newEngine->renderThreadData.dataMutex, NULL);
     newEngine->renderThreadData.render = false;
     pthread_cond_init(&newEngine->renderThreadData.renderSignal, NULL);
+    pthread_mutex_init(&newEngine->renderThreadData.renderMutex, NULL);
+    newEngine->renderThreadData.renderBuffer = &newEngine->stdscrBuffer1;
+    pthread_mutex_init(&newEngine->renderThreadData.drawingMutex, NULL);
+    newEngine->renderThreadData.drawingBuffer = &newEngine->stdscrBuffer2;
     pthread_mutex_init(&newEngine->renderThreadData.timerMutex, NULL);
     pthread_cond_init(&newEngine->renderThreadData.timerSignal, NULL);
 
+    pthread_cond_init(&newEngine->renderThreadData.renderDrawSync, NULL);
+    newEngine->renderThreadData.renderDrawSyncWaiting = false;
+
+    pthread_create(&newEngine->renderThread, NULL, renderThreadFunction, newEngine);
+    pthread_create(&newEngine->drawingThread, NULL, drawingThreadFunction, newEngine);
+    
     // Global thread data
     pthread_mutex_init(&newEngine->globalThreadData.dataMutex, NULL);
     pthread_cond_init(&newEngine->globalThreadData.exitSignal, NULL);
@@ -113,9 +147,13 @@ Engine* initializeEngine(int width, int height){
 }
 
 void destroyEngine(Engine* engine){
+    /* Free any memory we control */
     free(engine->mainPanel);
-    endwin();
+
     free(engine);
+
+    /* End ncurses mode */
+    endwin();
 }
 
 // Used by moveRelativeTo to get the absolute coordinates
@@ -257,7 +295,6 @@ void* eventThreadFunction(void* data){
 // if timerExit is true when the timer thread gets the timer mutex, the
 // timer thread will exit
 bool timerExit = false;
-int timesSlept = 0;
 void* renderThreadFunction(void* data){
     // The data passed to this function should be a pointer to the engine
     Engine* engine = (Engine*)data;
@@ -265,10 +302,8 @@ void* renderThreadFunction(void* data){
     /* Set up the timer thread */
     // We hold the timer mutex by default, and release it when waiting for timer signals
     pthread_mutex_lock(&engine->renderThreadData.timerMutex);
-    
-    // create timer thread
-    pthread_t timerThread;
-    pthread_create(&timerThread, NULL, renderTimerThreadFunction, engine);
+
+    pthread_create(&engine->renderTimerThread, NULL, renderTimerThreadFunction, engine);
 
     /* The render thread doesn't exit normally, instead pthread_exit(status)
      * is called when this thread is finished. The render thread will check
@@ -289,8 +324,29 @@ void* renderThreadFunction(void* data){
             /* Release render thread data mutex while rendering, since we don't need those resources right now */
             pthread_mutex_unlock(&engine->renderThreadData.dataMutex);
             
+            /* Get current drawing buffer for later use (it might change later) */
+            pthread_mutex_lock(&engine->renderThreadData.drawingMutex);
+            cchar_t** drawingBuffer = engine->renderThreadData.drawingBuffer;
+            pthread_mutex_unlock(&engine->renderThreadData.drawingMutex);
+
             /* Wait for timer ready signal */
             pthread_cond_wait(&engine->renderThreadData.timerSignal, &engine->renderThreadData.timerMutex);
+            
+            /* Sync with drawing thread */
+            pthread_mutex_lock(&engine->renderThreadData.dataMutex);
+            if (engine->renderThreadData.renderDrawSyncWaiting){
+                // draw thread is waiting on us, reset flag and signal to sync
+                engine->renderThreadData.renderDrawSyncWaiting = false;
+                pthread_cond_signal(&engine->renderThreadData.renderDrawSync);
+            } else {
+                // we're wating on drawing thread, set flag and wait
+                engine->renderThreadData.renderDrawSyncWaiting = true;
+                pthread_cond_wait(&engine->renderThreadData.renderDrawSync, &engine->renderThreadData.dataMutex);
+            }
+            pthread_mutex_unlock(&engine->renderThreadData.dataMutex);
+
+            /* Get render mutex */
+            pthread_mutex_lock(&engine->renderThreadData.renderMutex);
 
             /* Do render */
             // Calculate fps if 1 second has passed since last update
@@ -299,29 +355,26 @@ void* renderThreadFunction(void* data){
                 pthread_mutex_lock(&engine->renderThreadData.dataMutex);
                 engine->renderThreadData.fps_calculated = renders;
                 pthread_mutex_unlock(&engine->renderThreadData.dataMutex);
-                mvwprintw(stdscr, 6, 10, "FPS: %3d  ", renders);
-                timesSlept = 0;
                 renders = 0;
                 engine->mainPanel->clearPanel(engine->mainPanel);
             }
 
-            // For now print some debug info instead of actually rendering.
-            //mvwprintw(stdscr, 10, 10, "FPS: %d", engine->renderThreadData.fps_calculated);
-            //mvwprintw(stdscr, 11, 10, "Frame: %04d", renders);
-            //mvwprintw(stdscr, 12, 10, "Time: %06dms", (getTimems() - startTime));
-            //mvwprintw(stdscr, 13, 10, "MS_PER_FRAME: %dms", MS_PER_FRAME * 2);
-            //mvwprintw(stdscr, 14, 10, "Times Slept this render: %d", timesSlept);
-            //timesSlept = 0;
-            //engine->mainPanel->clearPanel(engine->mainPanel);
+            /* Clear the buffer - write background chars to it */
+            memcpy(*engine->renderThreadData.renderBuffer, engine->backgroundBuffer, engine->stdscrBufferSize);
+            
+            /* Render the main panel */
+            //((Object*)engine->mainPanel)->drawObject((Object*)engine->mainPanel, engine->mainPanel);
             renders++;
-            //sleepms(100);
-            ((Object*)engine->mainPanel)->drawObject((Object*)engine->mainPanel, engine->mainPanel);
 
+            /* Change renderBuffer for next loop */
+            engine->renderThreadData.renderBuffer = drawingBuffer;
+            
             /* Wait for timer signal to finish render and update screen */
             pthread_cond_wait(&engine->renderThreadData.timerSignal, &engine->renderThreadData.timerMutex);
 
-            engine->mainPanel->refreshPanel(engine->mainPanel);
-            doupdate();
+            /* Release render mutex */
+            pthread_mutex_unlock(&engine->renderThreadData.renderMutex);
+            refresh();
         }
         
         /* If control reaches this part of the code we either have the data mutex and render is false,
@@ -352,7 +405,7 @@ void* renderThreadFunction(void* data){
             
             // join timer thread
             void* timerReturn;
-            pthread_join(timerThread, &timerReturn);
+            pthread_join(engine->renderTimerThread, &timerReturn);
 
             // exit
             pthread_exit(0);
@@ -361,6 +414,54 @@ void* renderThreadFunction(void* data){
         /* If we should continue, wait for renderSignal and then release the data mutex */
         pthread_cond_wait(&engine->renderThreadData.renderSignal, &engine->renderThreadData.dataMutex);
         pthread_mutex_unlock(&engine->renderThreadData.dataMutex);
+    }
+}
+
+void* drawingThreadFunction(void* data){
+    Engine* engine = (Engine*)data;
+
+    while (true){
+        /* Get the current render buffer, it might change before we use it */
+        pthread_mutex_lock(&engine->renderThreadData.renderMutex);
+        cchar_t** renderBuffer = engine->renderThreadData.renderBuffer;
+        pthread_mutex_unlock(&engine->renderThreadData.renderMutex);
+
+        /* sync with render thread */
+        pthread_mutex_lock(&engine->renderThreadData.dataMutex);
+        if (engine->renderThreadData.renderDrawSyncWaiting){
+            // render thread is waiting on us, reset flag and signal to sync
+            engine->renderThreadData.renderDrawSyncWaiting = false;
+            pthread_cond_signal(&engine->renderThreadData.renderDrawSync);
+        } else {
+            // we're wating on render thread, set flag and wait
+            engine->renderThreadData.renderDrawSyncWaiting = true;
+            pthread_cond_wait(&engine->renderThreadData.renderDrawSync, &engine->renderThreadData.dataMutex);
+        }
+        pthread_mutex_unlock(&engine->renderThreadData.dataMutex);
+        
+        /* Get drawing mutex */
+        pthread_mutex_lock(&engine->renderThreadData.drawingMutex);
+
+        /* Draw to ncurses screen */
+        move(0, 0);
+        for (int y = 0; y < engine->stdscrWidth; y++){
+            for (int x = 0; x < engine->stdscrHeight; x++){
+                cchar_t* currentChar = (*engine->renderThreadData.drawingBuffer) + (engine->stdscrHeight * x) + y;
+                add_wch(currentChar);
+            }
+        }
+
+        /* Print debug info at top left */
+        move(0,0);
+        printw("FPS: %d", engine->renderThreadData.fps_calculated);
+
+        refresh();
+
+        /* Switch drawing buffer for next loop */
+        engine->renderThreadData.drawingBuffer = renderBuffer;
+
+        /* Release drawing mutex */
+        pthread_mutex_unlock(&engine->renderThreadData.drawingMutex);
     }
 }
 
@@ -386,7 +487,6 @@ void* renderTimerThreadFunction(void* data){
 
         /* Wait for MS_PER_FRAME */
         sleepms(MS_PER_FRAME);
-        timesSlept++;
 
         /* Get timer mutex and send timer done signal */
         pthread_mutex_lock(&engine->renderThreadData.timerMutex); // This will block until the render thread is ready for signal - if a render takes longer than MS_PER_FRAME

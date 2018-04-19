@@ -133,8 +133,20 @@ typedef struct Engine_s{
      */
     Panel* activePanel;
 
-    /* width and height of main panel */
+    /* width and height of the main panel */
     int width, height;
+
+    /* Buffer of ncurses characters to print to the screen */
+    // Array stored in column-major order - char at (x, y) = screenBuffer + (height*x) + y
+    // Two buffers allocated for double buffer rendering system
+    cchar_t* stdscrBuffer1;
+    cchar_t* stdscrBuffer2;
+    // Buffer copied to the render buffer (stdscrBuffer1/2) before rendering; effectively the background
+    cchar_t* backgroundBuffer;
+    // size of the above buffers in bytes
+    int stdscrBufferSize;
+    // width and height of the screen
+    int stdscrWidth, stdscrHeight;
 
     /* Event handler */
     /* Called for every event at the start of the game loop
@@ -166,20 +178,39 @@ typedef struct Engine_s{
     /* The render thread runs continously at a framerate defined by
      * MS_PER_FRAME, which determines how long a frame should last.
      * Implemented similar to the game thread's tickrate.
+     *
+     * renderThread is the thread used to render to a buffer
+     * drawingThread is the thread used to draw the non-rendering buffer to the screen
+     * renderTimerThread is the timer thread which syncs the other threads to an fps
      */
     pthread_t renderThread;
+    pthread_t drawingThread;
+    pthread_t renderTimerThread;
     struct RenderThreadData_s{
         pthread_mutex_t dataMutex;
 
         /* dataMutex resources */
         bool render; // should the render thread be rendering right now?
         int fps_calculated; // The current fps being rendered
+        bool renderDrawSyncWaiting; // if the render thread or drawing thread is waiting for the other to sync
+        pthread_cond_t renderDrawSync; // signal the render or drawing thread has caught up with the other
         pthread_cond_t renderSignal; // Used to signal a change in render to the render thread
         /* end of dataMutex resources */
 
+        pthread_mutex_t renderMutex;
+        /* resources accessed by render thread */
+        cchar_t** renderBuffer; // pointer to the cchar_t buffer to render to
+        /* end of renderMutex resources */
+
+        pthread_mutex_t drawingMutex;
+        /* resources accessed by drawing thread */
+        cchar_t** drawingBuffer; // pointer to the cchar_t buffer to draw from
+        /* end of renderMutex resources */
+        
         pthread_mutex_t timerMutex;
         /* timerMutex resources */
         pthread_cond_t timerSignal;
+        bool timerExit;
         /* end of timerMutex resources */
     } renderThreadData;
 

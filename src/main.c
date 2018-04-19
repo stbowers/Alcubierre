@@ -41,10 +41,10 @@ int main(){
 
     /* Run the game */
     // call to startGame in AlcubierreGame.c
-    startGame(engine);
+    //startGame(engine);
     
     /* Main thread is done - wait for 'q' to be pressed to exit, send keyboard events to the engine */
-    timeout(0); // don't block on getch()
+    //timeout(0); // don't block on getch()
     /* Create window that isn't visible (shares memory with stdscr)
      * to get characters from. refreshing it will have no effect 
      * on the rest of the engine.
@@ -57,9 +57,8 @@ int main(){
      * and thus anything printed on stdscr won't be blanked out by the
      * new window.
      */
-    WINDOW* getchWindow = subwin(stdscr, 1, 1, 0, 0);
     char input;
-    while ((input = wgetch(getchWindow)) != 'q'){
+    while ((input = getchar()) != 'q'){
         // create keyboard input event if key pressed
         if (input != ERR){
             // the memory is managed by the event thread after we send the event, so no need to free the event here
