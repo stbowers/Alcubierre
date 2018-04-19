@@ -43,7 +43,7 @@ Engine* initializeEngine(int width, int height){
     newEngine->height = height;
 
     /* Initialize ncurses */
-    stdscr = initscr();
+    newEngine->mainWindow = initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
@@ -97,16 +97,17 @@ Engine* initializeEngine(int width, int height){
     newEngine->stdPanel = new_panel(stdscr);
 
     /* Create the main window */
-    int start_x = (int)((COLS - width) / 2.0f);
-    int start_y = (int)((LINES - height) / 2.0f);
+    //newEngine->mainWindow = newwin(0, 0, 0, 0);
+    //int start_x = (int)((COLS - width) / 2.0f);
+    //int start_y = (int)((LINES - height) / 2.0f);
     // create two wider & two higher, and move up & left one for border
-    newEngine->mainPanel = createPanel(width + 2, height + 2, start_x-1, start_y-1, 0);
-    newEngine->mainPanel->objectProperties.moveAbsolute((Object*)newEngine->mainPanel, start_x - 1, start_y - 1);
-    newEngine->activePanel = newEngine->mainPanel;
+    //newEngine->mainPanel = createPanel(width + 2, height + 2, start_x-1, start_y-1, 0);
+    //newEngine->mainPanel->objectProperties.moveAbsolute((Object*)newEngine->mainPanel, start_x - 1, start_y - 1);
+    //newEngine->activePanel = newEngine->mainPanel;
 
     /* Redefine main window functions */
-    newEngine->mainPanel->clearPanel = mainPanelClear;
-    newEngine->mainPanel->refreshPanel = mainPanelRefresh;
+    //newEngine->mainPanel->clearPanel = mainPanelClear;
+    //newEngine->mainPanel->refreshPanel = mainPanelRefresh;
     
     /* Set engine functions */
     newEngine->handleEvent = defaultEngineHandleEvent;
@@ -356,7 +357,6 @@ void* renderThreadFunction(void* data){
                 engine->renderThreadData.fps_calculated = renders;
                 pthread_mutex_unlock(&engine->renderThreadData.dataMutex);
                 renders = 0;
-                engine->mainPanel->clearPanel(engine->mainPanel);
             }
 
             /* Clear the buffer - write background chars to it */
@@ -374,7 +374,6 @@ void* renderThreadFunction(void* data){
 
             /* Release render mutex */
             pthread_mutex_unlock(&engine->renderThreadData.renderMutex);
-            refresh();
         }
         
         /* If control reaches this part of the code we either have the data mutex and render is false,
@@ -443,19 +442,19 @@ void* drawingThreadFunction(void* data){
         pthread_mutex_lock(&engine->renderThreadData.drawingMutex);
 
         /* Draw to ncurses screen */
-        move(0, 0);
+        wmove(engine->mainWindow, 0, 0);
         for (int y = 0; y < engine->stdscrWidth; y++){
             for (int x = 0; x < engine->stdscrHeight; x++){
-                cchar_t* currentChar = (*engine->renderThreadData.drawingBuffer) + (engine->stdscrHeight * x) + y;
-                add_wch(currentChar);
+                cchar_t* currentChar = (engine->backgroundBuffer) + (engine->stdscrHeight * x) + y;
+                wadd_wch(engine->mainWindow, currentChar);
             }
         }
 
         /* Print debug info at top left */
-        move(0,0);
-        printw("FPS: %d", engine->renderThreadData.fps_calculated);
+        wmove(engine->mainWindow, 0,0);
+        wprintw(engine->mainWindow, "FPS: %d", engine->renderThreadData.fps_calculated);
 
-        refresh();
+        wrefresh(engine->mainWindow);
 
         /* Switch drawing buffer for next loop */
         engine->renderThreadData.drawingBuffer = renderBuffer;

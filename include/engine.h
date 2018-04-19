@@ -133,6 +133,8 @@ typedef struct Engine_s{
      */
     Panel* activePanel;
 
+    WINDOW* mainWindow;
+
     /* width and height of the main panel */
     int width, height;
 

@@ -32,6 +32,9 @@ int main(){
     printw("Pres any key to start...\n");
     getch(); // block on debug stuff until key is pressed
 
+    clear();
+    refresh();
+
     /* Start the render thread */
     // Signal the render thread to start
     pthread_mutex_lock(&engine->renderThreadData.dataMutex);
@@ -68,7 +71,8 @@ int main(){
             keyEvent->eventData = &input;
 
             // send events
-            engine->handleEvent(engine, keyEvent);
+            //engine->handleEvent(engine, keyEvent);
+            free(keyEvent);
         }
 
         // Sleep so we don't use too much cpu for the main thread
