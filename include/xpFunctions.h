@@ -93,6 +93,6 @@ void freeAXPFile(AXPFile* file);
  *      at the proper time (showing/hiding panels is almost
  *      instant compared to painting a whole layer)
  */
-void drawLayerToPanel(XPLayer* layer, Panel* panel, bool clearPanel);
+void drawLayerToBuffer(XPLayer* layer, cchar_t* buffer, bool transparent, Engine* engine);
 
 #endif //__XPFUNCTIONS_H__

@@ -22,7 +22,7 @@
 
 typedef struct XPSpriteTextureData_s{
     int width, height;
-    Panel* panel;
+    cchar_t* textureBuffer;
 } XPSpriteTextureData;
 
 typedef struct XPSpriteData_s{
@@ -30,14 +30,14 @@ typedef struct XPSpriteData_s{
     XPSpriteTextureData* textureData; // Optimized data for rendering
 } XPSpriteData;
 
-GameObject* createXPSprite(XPFile* texture, int xpos, int ypos, int z);
+GameObject* createXPSprite(XPFile* texture, int xpos, int ypos, int zorder, Engine* engine);
 void destroyXPSprite(GameObject* sprite);
 
 /* AXP Sprite - animated sprite */
 
 typedef struct AXPSpriteTextureData_s{
     int width, height, currentFrame;
-    Panel** frames; // array of Panel* for each frame
+    cchar_t** frames; // array of buffers for each frame
 } AXPSpriteTextureData;
 
 typedef struct AXPSpriteData_s{
@@ -47,7 +47,7 @@ typedef struct AXPSpriteData_s{
     int fps; // fps this animation runs at
 } AXPSpriteData;
 
-GameObject* createAXPSprite(AXPFile* texture, int xpos, int ypos);
+GameObject* createAXPSprite(AXPFile* texture, int xpos, int ypos, Engine* engine);
 void destroyAXPSprite(GameObject* sprite);
 
 #endif //__SPRITE_H_

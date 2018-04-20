@@ -19,21 +19,20 @@ int main(){
     Engine* engine = initializeEngine(128, 72);
     
     /* Write some debug output to stdscr, and a pause for debugging before starting the game */
-    printw("Term supports %d colors\n", COLORS);
-    printw("Term supports %d color pairs\n", COLOR_PAIRS);
-    printw("Term can change color: %s\n", (can_change_color())?"true":"false");
-    printw("Terminal Size: %dx%d\n", COLS, LINES);
+    wprintw(engine->stdscr, "Term supports %d colors\n", COLORS);
+    wprintw(engine->stdscr, "Term supports %d color pairs\n", COLOR_PAIRS);
+    wprintw(engine->stdscr, "Term can change color: %s\n", (can_change_color())?"true":"false");
+    wprintw(engine->stdscr, "Terminal Size: %dx%d\n", COLS, LINES);
 
     init_pair(1, COLOR_BLUE, COLOR_BLACK);
     attron(COLOR_PAIR(1));
-    printw("Testing Color - blue with black background...\n");
+    wprintw(engine->stdscr, "Testing Color - blue with black background...\n");
     attroff(COLOR_PAIR(1));
     
     printw("Pres any key to start...\n");
-    getch(); // block on debug stuff until key is pressed
+    wgetch(engine->stdscr); // block on debug stuff until key is pressed
 
-    clear();
-    refresh();
+    wclear(engine->stdscr);
 
     /* Start the render thread */
     // Signal the render thread to start
@@ -44,7 +43,7 @@ int main(){
 
     /* Run the game */
     // call to startGame in AlcubierreGame.c
-    //startGame(engine);
+    startGame(engine);
     
     /* Main thread is done - wait for 'q' to be pressed to exit, send keyboard events to the engine */
     //timeout(0); // don't block on getch()
@@ -71,8 +70,7 @@ int main(){
             keyEvent->eventData = &input;
 
             // send events
-            //engine->handleEvent(engine, keyEvent);
-            free(keyEvent);
+            engine->handleEvent(engine, keyEvent);
         }
 
         // Sleep so we don't use too much cpu for the main thread

@@ -14,14 +14,11 @@
 #include <string.h>
 #include <engine.h>
 #include <pthread.h>
+#include <stdarg.h>
 
 #define MS_PER_TICK 10 // how many milliseconds corrospond to one tick - tickrate (10ms/tick ~= 100 ticks per second)
 // There is a weird bug with the render thread timer where it runs at exactly half the framerate expected from MS_PER_FRAME - so the value below should be halved
 #define MS_PER_FRAME 5 // how many milliseconds corrospond to one frame - framerate
-
-/* Main panel functions */
-void mainPanelRefresh(Panel* self);
-void mainPanelClear(Panel* self);
 
 /* Engine functions */
 void defaultEngineHandleEvent(Engine* self, Event* event);
@@ -43,10 +40,11 @@ Engine* initializeEngine(int width, int height){
     newEngine->height = height;
 
     /* Initialize ncurses */
-    newEngine->mainWindow = initscr();
+    newEngine->stdscr = initscr();
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
+    curs_set(0);
     start_color();
 
     // Check the size of the terminal window is large enough for a widthxheight window with 1 wide border
@@ -74,12 +72,13 @@ Engine* initializeEngine(int width, int height){
     newEngine->backgroundBuffer = (cchar_t*) malloc(newEngine->stdscrBufferSize);
 
     /* Fill background buffer */
+    // default background char: space with black bg and white fg color
     for (int x = 0; x < newEngine->stdscrWidth; x++){
         for (int y = 0; y < newEngine->stdscrHeight; y++){
             cchar_t* currentChar = newEngine->backgroundBuffer + (newEngine->stdscrHeight * x) + y;
             currentChar->attr = 0;
             // clear char array
-            currentChar->chars[0] = L'\u2588';
+            currentChar->chars[0] = L' ';
             currentChar->chars[1] = 0;
             currentChar->chars[2] = 0;
             currentChar->chars[3] = 0;
@@ -93,22 +92,13 @@ Engine* initializeEngine(int width, int height){
     memcpy(newEngine->stdscrBuffer1, newEngine->backgroundBuffer, newEngine->stdscrBufferSize);
     memcpy(newEngine->stdscrBuffer2, newEngine->backgroundBuffer, newEngine->stdscrBufferSize);
 
-    /* Create stdscr panel */
-    newEngine->stdPanel = new_panel(stdscr);
-
     /* Create the main window */
-    //newEngine->mainWindow = newwin(0, 0, 0, 0);
-    //int start_x = (int)((COLS - width) / 2.0f);
-    //int start_y = (int)((LINES - height) / 2.0f);
+    int start_x = (int)((COLS - width) / 2.0f);
+    int start_y = (int)((LINES - height) / 2.0f);
     // create two wider & two higher, and move up & left one for border
-    //newEngine->mainPanel = createPanel(width + 2, height + 2, start_x-1, start_y-1, 0);
-    //newEngine->mainPanel->objectProperties.moveAbsolute((Object*)newEngine->mainPanel, start_x - 1, start_y - 1);
-    //newEngine->activePanel = newEngine->mainPanel;
+    newEngine->mainPanel = createPanel(width, height, start_x, start_y, 0);
+    newEngine->activePanel = newEngine->mainPanel;
 
-    /* Redefine main window functions */
-    //newEngine->mainPanel->clearPanel = mainPanelClear;
-    //newEngine->mainPanel->refreshPanel = mainPanelRefresh;
-    
     /* Set engine functions */
     newEngine->handleEvent = defaultEngineHandleEvent;
 
@@ -158,16 +148,16 @@ void destroyEngine(Engine* engine){
 }
 
 // Used by moveRelativeTo to get the absolute coordinates
-void getAbsoluteCoordinates(Object* relativeTo, int relX, int relY, int* absX, int* absY){
+void getAbsolutePosition(Object* parent, int relX, int relY, int* absX, int* absY){
     /* add relX and relY to the given object's x and y */
-    int newX = relativeTo->x + relX;
-    int newY = relativeTo->y + relY;
+    int newX = parent->x + relX;
+    int newY = parent->y + relY;
 
     /* If the given object has a parent, we need to convert 
      * the new coordinates relative to the parent
      */
-    if (relativeTo->parent != NULL){
-       getAbsoluteCoordinates(relativeTo->parent, newX, newY, absX, absY); 
+    if (parent->parent != NULL){
+       getAbsolutePosition(parent->parent, newX, newY, absX, absY); 
     } else {
         // if given object doen't have a parent, we can assume newX and newY are absolute
         *absX = newX;
@@ -175,14 +165,61 @@ void getAbsoluteCoordinates(Object* relativeTo, int relX, int relY, int* absX, i
     }
 }
 
-// Move the given object relative to the position of another object
-void moveRelativeTo(Object* toMove, Object* relativeTo, int relX, int relY){
-    /* Get absolute coordiantes */
-    int absX, absY;
-    getAbsoluteCoordinates(relativeTo, relX, relY, &absX, &absY);
+// writes a wchar with attributes to the buffer
+void writewchToBuffer(cchar_t* buffer, int x, int y, unsigned int attr, wchar_t wch[5]){
+    /* Call writecharToBuffer with a new cchar_t struct */
+    cchar_t ch = {attr, {wch[0], wch[1], wch[2], wch[3], wch[4]}, 0};
+    writecharToBuffer(buffer, x, y, ch);
 
-    /* Call the object's move function */
-    toMove->moveAbsolute(toMove, absX, absY);
+}
+
+// Writes a cchar_t to buffer
+void writecharToBuffer(cchar_t* buffer, int x, int y, cchar_t ch){
+    /* Get cchar_t at (x,y) */
+    // Assumes buffer points somewhere inside a stdscr buffer
+    cchar_t* charAt = &buffer[(LINES * x) + y];
+
+    /* Set cchar_t */
+    *charAt = ch;
+}
+
+// printf to buffer
+void bufferPrintf(cchar_t* buffer, int width, int height, int x, int y, unsigned int attr, const char* format, ...){
+    /* Get variadic args */
+    va_list args;
+    va_start(args, format);
+
+    /* Create string */
+    // maximum length of string is width*height (allocate +1 for null terminator)
+    char* str = (char*) malloc(sizeof(char) * ((width * height) + 1));
+    vsnprintf(str, width * height, format, args);
+
+    /* Draw string to buffer */
+    int deltaX = 0;
+    int deltaY = 0;
+    for (int i = 0; i <= width*height; i++){
+        if (!str[i]){
+            // if we've reached a null byte we're done
+            free(str);
+            return;
+        } else if (str[i] == '\n') {
+            // move to next line
+            deltaX = 0;
+            deltaY++;
+        } else {
+            // print char, advance x by 1, if x == width go to next line
+            cchar_t* charAt = &buffer[((height) * (x + deltaX)) + (y + deltaY)];
+            charAt->attr = attr;
+            charAt->chars[0] = str[i];
+            charAt->chars[1] = 0;
+
+            deltaX++;
+            if (deltaX == width){
+                deltaX = 0;
+                deltaY++;
+            }
+        }
+    }
 }
 
 /* Gets a timestamp in milliseconds, from a monotonic clock.
@@ -208,20 +245,6 @@ void sleepms(int msec){
         /* UNIX-like systems */
         usleep(msec * 1000);
     #endif
-}
-
-/* Main window functions */
-void mainPanelRefresh(Panel* self){
-    /* Draw border first */
-    box(self->window, 0, 0);
-
-    /* Refresh panel */
-    update_panels();
-}
-
-void mainPanelClear(Panel* self){
-    /* Clear window */
-    werase(self->window);
 }
 
 /* Engine functions */
@@ -324,11 +347,6 @@ void* renderThreadFunction(void* data){
         while ((!(mutex_status = pthread_mutex_lock(&engine->renderThreadData.dataMutex))) && engine->renderThreadData.render){
             /* Release render thread data mutex while rendering, since we don't need those resources right now */
             pthread_mutex_unlock(&engine->renderThreadData.dataMutex);
-            
-            /* Get current drawing buffer for later use (it might change later) */
-            pthread_mutex_lock(&engine->renderThreadData.drawingMutex);
-            cchar_t** drawingBuffer = engine->renderThreadData.drawingBuffer;
-            pthread_mutex_unlock(&engine->renderThreadData.drawingMutex);
 
             /* Wait for timer ready signal */
             pthread_cond_wait(&engine->renderThreadData.timerSignal, &engine->renderThreadData.timerMutex);
@@ -363,12 +381,10 @@ void* renderThreadFunction(void* data){
             memcpy(*engine->renderThreadData.renderBuffer, engine->backgroundBuffer, engine->stdscrBufferSize);
             
             /* Render the main panel */
-            //((Object*)engine->mainPanel)->drawObject((Object*)engine->mainPanel, engine->mainPanel);
+            cchar_t* bufferAtMainPanel = &(*engine->renderThreadData.renderBuffer)[(LINES * engine->mainPanel->objectProperties.x) + engine->mainPanel->objectProperties.y];
+            ((Object*)engine->mainPanel)->drawObject((Object*)engine->mainPanel, bufferAtMainPanel);
             renders++;
 
-            /* Change renderBuffer for next loop */
-            engine->renderThreadData.renderBuffer = drawingBuffer;
-            
             /* Wait for timer signal to finish render and update screen */
             pthread_cond_wait(&engine->renderThreadData.timerSignal, &engine->renderThreadData.timerMutex);
 
@@ -420,11 +436,6 @@ void* drawingThreadFunction(void* data){
     Engine* engine = (Engine*)data;
 
     while (true){
-        /* Get the current render buffer, it might change before we use it */
-        pthread_mutex_lock(&engine->renderThreadData.renderMutex);
-        cchar_t** renderBuffer = engine->renderThreadData.renderBuffer;
-        pthread_mutex_unlock(&engine->renderThreadData.renderMutex);
-
         /* sync with render thread */
         pthread_mutex_lock(&engine->renderThreadData.dataMutex);
         if (engine->renderThreadData.renderDrawSyncWaiting){
@@ -442,22 +453,27 @@ void* drawingThreadFunction(void* data){
         pthread_mutex_lock(&engine->renderThreadData.drawingMutex);
 
         /* Draw to ncurses screen */
-        wmove(engine->mainWindow, 0, 0);
-        for (int y = 0; y < engine->stdscrWidth; y++){
-            for (int x = 0; x < engine->stdscrHeight; x++){
-                cchar_t* currentChar = (engine->backgroundBuffer) + (engine->stdscrHeight * x) + y;
-                wadd_wch(engine->mainWindow, currentChar);
+        wmove(engine->stdscr, 0, 0);
+        for (int y = 0; y < engine->stdscrHeight; y++){
+            for (int x = 0; x < engine->stdscrWidth; x++){
+                //wmove(engine->stdscr, y, x);
+                cchar_t* currentChar = &(*engine->renderThreadData.drawingBuffer)[(engine->stdscrHeight * x) + y];
+                wadd_wch(engine->stdscr, currentChar);
             }
         }
 
         /* Print debug info at top left */
-        wmove(engine->mainWindow, 0,0);
-        wprintw(engine->mainWindow, "FPS: %d", engine->renderThreadData.fps_calculated);
+        wmove(engine->stdscr, 0,0);
+        wprintw(engine->stdscr, "FPS: %d", engine->renderThreadData.fps_calculated);
 
-        wrefresh(engine->mainWindow);
+        wrefresh(engine->stdscr);
 
-        /* Switch drawing buffer for next loop */
+        /* Switch drawing buffer and render buffer for next loop */
+        pthread_mutex_lock(&engine->renderThreadData.renderMutex);
+        cchar_t** renderBuffer = engine->renderThreadData.renderBuffer;
+        engine->renderThreadData.renderBuffer = engine->renderThreadData.drawingBuffer;
         engine->renderThreadData.drawingBuffer = renderBuffer;
+        pthread_mutex_unlock(&engine->renderThreadData.renderMutex);
 
         /* Release drawing mutex */
         pthread_mutex_unlock(&engine->renderThreadData.drawingMutex);

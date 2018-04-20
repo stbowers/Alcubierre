@@ -12,11 +12,11 @@
 
 /* GameObject functions */
 void AXPSpriteUpdate(Object* self);
-void AXPSpriteDraw(Object* self, Panel* panel);
+void AXPSpriteDraw(Object* self, cchar_t* buffer);
 
 /* Implementation of sprites.h functions */
 
-GameObject* createAXPSprite(AXPFile* texture, int xpos, int ypos){
+GameObject* createAXPSprite(AXPFile* texture, int xpos, int ypos, Engine* engine){
     /* Create Game Object */
     GameObject* newObject = (GameObject*)malloc(sizeof(GameObject));
     newObject->timeCreated = getTimems();
@@ -47,15 +47,12 @@ GameObject* createAXPSprite(AXPFile* texture, int xpos, int ypos){
     pthread_mutex_init(&data->spriteMutex, NULL);
 
     /* Create panel for each frame */
-    data->textureData->frames = (Panel**) malloc(sizeof(Panel*) * texture->xpFile->numLayers);
-    for (int layer = 0; layer < texture->xpFile->numLayers; layer++){
-        data->textureData->frames[layer] = createPanel(data->textureData->width, data->textureData->height, 0, 0, 0);
-        /* Draw layer */
-        drawLayerToPanel(&texture->xpFile->layers[layer], data->textureData->frames[layer], false); 
-    }
-
-    /* Move the sprite */
-    moveAXPSprite(newObject, xpos, ypos);
+  //data->textureData->frames = (Panel**) malloc(sizeof(Panel*) * texture->xpFile->numLayers);
+  //for (int layer = 0; layer < texture->xpFile->numLayers; layer++){
+  //    data->textureData->frames[layer] = createPanel(data->textureData->width, data->textureData->height, 0, 0, 0);
+  //    /* Draw layer */
+  //    drawLayerToPanel(&texture->xpFile->layers[layer], data->textureData->frames[layer], false); 
+  //}
 
     return newObject;
 }
@@ -76,13 +73,6 @@ void destroyAXPSprite(GameObject* sprite){
     free(sprite);
 }
 
-void moveAXPSprite(GameObject* self, int x, int y){
-    AXPSpriteData* data = (AXPSpriteData*)self->userData;
-    for (int layer = 0; layer < data->texture->xpFile->numLayers; layer++){
-        move_panel(data->textureData->frames[layer]->panel, x, y);
-    }
-}
-
 /* Implementation of custom functions */
 void AXPSpriteUpdate(Object* self){
     uint64_t timePassed = ((GameObject*)self)->timeCreated - getTimems();
@@ -101,22 +91,22 @@ void AXPSpriteUpdate(Object* self){
     pthread_mutex_unlock(&data->spriteMutex);
 }
 
-void AXPSpriteDraw(Object* self, Panel* panel){
+void AXPSpriteDraw(Object* self, cchar_t* buffer){
     AXPSpriteData* data = (AXPSpriteData*)((GameObject*)self)->userData;
 
-    /* Get mutex */
-    pthread_mutex_lock(&data->spriteMutex);
+  ///* Get mutex */
+  //pthread_mutex_lock(&data->spriteMutex);
 
-    /* Hide other frames */
-    for (int frame = 0; frame < data->texture->xpFile->numLayers; frame++){
-        hide_panel(data->textureData->frames[frame]->panel);
-    }
+  ///* Hide other frames */
+  //for (int frame = 0; frame < data->texture->xpFile->numLayers; frame++){
+  //    hide_panel(data->textureData->frames[frame]->panel);
+  //}
 
-    /* Render current frame */
-    int currentFrame = data->textureData->currentFrame;
-    top_panel(data->textureData->frames[currentFrame]->panel);
-    show_panel(data->textureData->frames[currentFrame]->panel);
+  ///* Render current frame */
+  //int currentFrame = data->textureData->currentFrame;
+  //top_panel(data->textureData->frames[currentFrame]->panel);
+  //show_panel(data->textureData->frames[currentFrame]->panel);
 
-    /* Release mutex */
-    pthread_mutex_unlock(&data->spriteMutex);
+  ///* Release mutex */
+  //pthread_mutex_unlock(&data->spriteMutex);
 }

@@ -1,22 +1,47 @@
 [
 {
   "directory": "/opt/development/c/cs2060/final/bin",
-  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include    -o CMakeFiles/Alcubierre.dir/src/graphics.c.o   -c /opt/development/c/cs2060/final/src/graphics.c",
-  "file": "/opt/development/c/cs2060/final/src/graphics.c"
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/AlcubierreGame.c.o   -c /opt/development/c/cs2060/final/src/AlcubierreGame.c",
+  "file": "/opt/development/c/cs2060/final/src/AlcubierreGame.c"
 },
 {
   "directory": "/opt/development/c/cs2060/final/bin",
-  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include    -o CMakeFiles/Alcubierre.dir/src/main.c.o   -c /opt/development/c/cs2060/final/src/main.c",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/engine.c.o   -c /opt/development/c/cs2060/final/src/engine.c",
+  "file": "/opt/development/c/cs2060/final/src/engine.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/main.c.o   -c /opt/development/c/cs2060/final/src/main.c",
   "file": "/opt/development/c/cs2060/final/src/main.c"
 },
 {
   "directory": "/opt/development/c/cs2060/final/bin",
-  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include    -o CMakeFiles/Alcubierre.dir/src/misc.c.o   -c /opt/development/c/cs2060/final/src/misc.c",
-  "file": "/opt/development/c/cs2060/final/src/misc.c"
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/objects/AXPSprite.c.o   -c /opt/development/c/cs2060/final/src/objects/AXPSprite.c",
+  "file": "/opt/development/c/cs2060/final/src/objects/AXPSprite.c"
 },
 {
   "directory": "/opt/development/c/cs2060/final/bin",
-  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include    -o CMakeFiles/Alcubierre.dir/src/objects/UI_SelectionWindow.c.o   -c /opt/development/c/cs2060/final/src/objects/UI_SelectionWindow.c",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/objects/UI_SelectionWindow.c.o   -c /opt/development/c/cs2060/final/src/objects/UI_SelectionWindow.c",
   "file": "/opt/development/c/cs2060/final/src/objects/UI_SelectionWindow.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/objects/XPSprite.c.o   -c /opt/development/c/cs2060/final/src/objects/XPSprite.c",
+  "file": "/opt/development/c/cs2060/final/src/objects/XPSprite.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/panel.c.o   -c /opt/development/c/cs2060/final/src/panel.c",
+  "file": "/opt/development/c/cs2060/final/src/panel.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/xpDraw.c.o   -c /opt/development/c/cs2060/final/src/xpDraw.c",
+  "file": "/opt/development/c/cs2060/final/src/xpDraw.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/xpLoader.c.o   -c /opt/development/c/cs2060/final/src/xpLoader.c",
+  "file": "/opt/development/c/cs2060/final/src/xpLoader.c"
 }
 ]

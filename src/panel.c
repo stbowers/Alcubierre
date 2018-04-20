@@ -11,14 +11,11 @@
 #include <stdlib.h>
 
 /* Default panel functions */
-void defaultRefreshPanel(Panel* self);
-void defaultClearPanel(Panel* self);
 void defaultAddObject(Panel* self, Object* newObject);
 void defaultRemoveObject(Panel* self, Object* toRemove);
-void defaultDrawPanel(Object* self, Panel* panel);
+void defaultDrawPanel(Object* self, cchar_t* buffer);
 void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, Event* event), Object* listener);
 void defaultPanelHandleEvent(Object* self, Event* event);
-void defaultMovePanel(Object* self, int absX, int absY);
 
 /* engine.h impementation */
 
@@ -33,14 +30,11 @@ Panel* createPanel(int width, int height, int x, int y, int z){
     newPanel->objectProperties.y = y;
     newPanel->objectProperties.z = z;
     newPanel->objectProperties.parent = NULL;
-    newPanel->objectProperties.moveAbsolute = defaultMovePanel;
     newPanel->objectProperties.show = true;
     newPanel->objectProperties.drawObject = defaultDrawPanel;
     newPanel->objectProperties.handleEvent = defaultPanelHandleEvent;
 
     /* Assign function pointers */
-    newPanel->refreshPanel = defaultRefreshPanel;
-    newPanel->clearPanel = defaultClearPanel;
     newPanel->addObject = defaultAddObject;
     newPanel->removeObject = defaultRemoveObject;
     newPanel->registerEventListener = defaultPanelAddListener;
@@ -49,11 +43,26 @@ Panel* createPanel(int width, int height, int x, int y, int z){
     newPanel->listeners = NULL;
     newPanel->nextListener = &newPanel->listeners; // next listener should be put at newPanel->listeners
 
-    /* Create ncurses window */
-    newPanel->window = newwin(height, width, y, x);
+    /* Create background buffer */
+    newPanel->width = width;
+    newPanel->height = height;
+    newPanel->backgroundBuffer = (cchar_t*) malloc(sizeof(cchar_t)*width*height);
 
-    /* Link panel to window */
-    newPanel->panel = new_panel(newPanel->window);
+    /* Fill background buffer */
+    for (int x = 0; x < newPanel->width; x++){
+        for (int y = 0; y < newPanel->height; y++){
+            cchar_t* currentChar = &newPanel->backgroundBuffer[(newPanel->height * x) + y];
+            currentChar->attr = 0;
+            // clear char array
+            currentChar->chars[0] = L'\u00A0';
+            currentChar->chars[1] = 0;
+            currentChar->chars[2] = 0;
+            currentChar->chars[3] = 0;
+            currentChar->chars[4] = 0;
+
+            currentChar->ext_color = 0;
+        }
+    }
 
     /* Return new panel */
     return newPanel;
@@ -64,20 +73,9 @@ void destroyPanel(Panel* panel){
 }
 
 /* default functions implementation */
-
-void defaultRefreshPanel(Panel* self){
-    update_panels();
-}
-
-void defaultClearPanel(Panel* self){
-    wclear(self->window);
-}
-
 void defaultAddObject(Panel* self, Object* newObject){
     /* Set self as parent to newObject */
     newObject->parent = (Object*)self;
-    /* Move newObject relative to self */
-    moveRelativeTo(newObject, (Object*)self, newObject->x, newObject->y);
 
     /* If our list of children is empty, simply assign newObject as the start of the list */
     if (self->childrenList == NULL){
@@ -122,15 +120,26 @@ void defaultRemoveObject(Panel* self, Object* toRemove){
     }
 }
 
-void defaultDrawPanel(Object* self, Panel* panel){
-    /* Put this panel on top of the panel stack */
-    top_panel(((Panel*)self)->panel);
+void defaultDrawPanel(Object* self, cchar_t* buffer){
+    /* Draw background buffer */
+    for (int x = 0; x < ((Panel*)self)->width; x++){
+        for (int y = 0; y < ((Panel*)self)->height; y++){
+            cchar_t* backgroundChar = &((Panel*)self)->backgroundBuffer[((((Panel*)self)->height) * x) + y];
+            // if background char is not NBSP (\u00A0), draw it. (NBSP is transparent character for our case)
+            if (backgroundChar->chars[0] != L'\u00A0'){
+                writecharToBuffer(buffer, x, y, *backgroundChar);
+            }
+        }
+    }
 
     /* Crawl list of objects, drawing each */
     Object* current = ((Panel*)self)->childrenList;
     while (current != NULL){
         if (current->show){
-            current->drawObject(current, (Panel*)self);
+            // get the offset into buffer at the x,y position of the object
+            cchar_t* bufferAtObject = &buffer[(LINES * current->x) + current->y];
+            // draw the object at it's location
+            current->drawObject(current, bufferAtObject);
         }
         current = current->next;
     }
@@ -154,25 +163,6 @@ void defaultPanelHandleEvent(Object* self, Event* event){
             current->handleEvent(current->listener, event);
         }
 
-        current = current->next;
-    }
-}
-
-void defaultMovePanel(Object* self, int absX, int absY){
-    /* Move this panel */
-    move_panel(((Panel*)self)->panel, absY, absX);
-
-    /* Move children */
-    Object* current = ((Panel*)self)->childrenList;
-    while (current != NULL){
-        /* Calculate child's x and y */
-        int x = absX + current->x;
-        int y = absY + current->y;
-
-        /* Move the child object */
-        current->moveAbsolute(current, x, y);
-
-        /* Move through list */
         current = current->next;
     }
 }

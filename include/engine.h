@@ -51,11 +51,11 @@ typedef struct Object_s{
     bool show;
 
     /* Object Functions */
-    // Draw the object to the given panel, called from the render thread
-    void (*drawObject)(struct Object_s* self, struct Panel_s* panel);
-
-    // Move the object to the absolute coordinates on the screen
-    void (*moveAbsolute)(struct Object_s* self, int xpos, int ypos);
+    // Draw the object to the given buffer, called from the render thread
+    // NOTE: buffer can point anywhere inside of a stdscr buffer. This function
+    // should draw relative to that pointer instead of trying to calculate
+    // absolute positions. This can be done with writewchToBuffer();
+    void (*drawObject)(struct Object_s* self, cchar_t* buffer);
 
     // Handle an event, called from the events thread
     /* NOTE: any intensive processing that needs to be
@@ -81,11 +81,11 @@ typedef struct Panel_s{
     /* Panel 'extends' Object */
     Object objectProperties;
 
-    /* Panel ref */
-    PANEL* panel;
-    
-    /* Window this panel is attached to */
-    WINDOW* window;
+    /* Width and height of this panel (mostly for background) */
+    int width, height;
+
+    /* Background buffer - rendered below any objects in this panel */
+    cchar_t* backgroundBuffer;
 
     /* Event delegation */
     EventListener* listeners;
@@ -93,16 +93,6 @@ typedef struct Panel_s{
     void (*registerEventListener)(struct Panel_s* self, EventTypeMask mask, void (*handleEvent)(Object* self, Event* event), Object* listener);
 
     /* Custom window functions */
-    /* Called when the window needs to be refreshed,
-     * takes place of wrefresh(windowPointer)
-     */
-    void (*refreshPanel)(struct Panel_s* self);
-
-    /* Called when the window should be cleared,
-     * takes place of wclear(windowPointer)
-     */
-    void (*clearPanel)(struct Panel_s* self);
-
     /* Adds an object to this panel
      */
     void (*addObject)(struct Panel_s* self, Object* newObject);
@@ -117,14 +107,16 @@ typedef struct Panel_s{
 
 // Structure to hold any and all data needed to run the engine
 typedef struct Engine_s{
+    /* The WINDOW* refernce returned by initscr
+     * in most cases this is stdscr - but this should be used
+     * for better functionality
+     */
+    WINDOW* stdscr;
+
     /* The main window for the engine */
     Panel* mainPanel;
-
-    /* Panel controlling the stdscr window, not the same as mainPanel
-     * We don't need the extra functionality of our panel struct, so
-     * just use an ncurses panel.
-     */
-    PANEL* stdPanel;
+    // width and height of the main window
+    int width, height;
 
     /* The window currently receiving event notifications from the engine */
     /* Only one active window is specified in order to avoid conflicts from
@@ -132,11 +124,6 @@ typedef struct Engine_s{
      * can, if they choose, forward events to other objects or windows.
      */
     Panel* activePanel;
-
-    WINDOW* mainWindow;
-
-    /* width and height of the main panel */
-    int width, height;
 
     /* Buffer of ncurses characters to print to the screen */
     // Array stored in column-major order - char at (x, y) = screenBuffer + (height*x) + y
@@ -261,14 +248,32 @@ void destroyEngine(Engine* engine);
 Panel* createPanel(int width, int height, int x, int y, int z);
 void destroyPanel(Panel* panel);
 
-/* Move the given object to coordinates relative to another object.
- * Note: Normal use is to pass an object as toMove, and it's parent as relativeTo,
- *  but the object can be moved relative to any other object in the game.
- * Note: If the same object is passed to toMove and relativeTo, this function
- *  effectively shifts the object to the right by relX and down by relY
- *  (or left/up if negative)
+/* Gets the absolute position (relative to stdscr) of a given coordinate
+ * relative to a given object
  */
-void moveRelativeTo(Object* toMove, Object* relativeTo, int relX, int relY);
+void getAbsolutePosition(Object* parent, int relX, int relY, int* absX, int* absY);
+
+/* Writes a wchar_t with the given attributes to the location in the given buffer
+ * NOTE: because of the way the stdscr buffers are layed out this function can
+ * take a pointer to any part of the buffer, and it will use x and y as offsets from
+ * that location, in other words x and y need not be absolute, only relative to the
+ * pointer passed here.
+ */
+void writewchToBuffer(cchar_t* buffer, int x, int y, unsigned int attr, wchar_t wch[5]);
+
+/* Same as above, but accepts a cchar_t
+ */
+void writecharToBuffer(cchar_t* buffer, int x, int y, cchar_t ch);
+
+/* printf style formatting to print text to a buffer
+ * NOTE: this function only accepts normal width (1 byte) characters
+ * NOTE: unlike above functions, this function can be used with any buffer,
+ *  not just buffers that are COLS wide and LINES tall. length is the width
+ *  each line should be (doesn't need to be the width of the buffer), 
+ *  and height is the height of the buffer (does need to be the actual height
+ *  for proper formatting)
+ */
+void bufferPrintf(cchar_t* buffer, int width, int height, int x, int y, unsigned int attr, const char* format, ...);
 
 /* Returns a timestamp in milliseconds, from an undefined
  * starting time. (Monotonic clock)

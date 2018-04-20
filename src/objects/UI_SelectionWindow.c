@@ -13,14 +13,13 @@
 #include <string.h>
 
 /* SelectionWindow functions */
-void drawSelectionWindow(Object* self, Panel* panel);
+void drawSelectionWindow(Object* self, cchar_t* buffer);
 void updateSelectionWindow(Object* self);
 void selectionWindowHandleEvents(Object* self, Event* event);
-void moveSelectionWindow(Object* self, int x, int y);
 
 /* ui.h implementation */
 
-GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback* callbacks, int numOptions, int xpos, int ypos, Engine* engine){
+GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback* callbacks, int numOptions, int xpos, int ypos, int z, Engine* engine){
     /* Create new game object */
     GameObject* newObject = (GameObject*) malloc(sizeof(GameObject));
     newObject->timeCreated = getTimems();
@@ -34,19 +33,22 @@ GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback
     newObject->objectProperties.type = OBJECT_GAMEOBJECT;
     newObject->objectProperties.x = xpos;
     newObject->objectProperties.y = ypos;
-    newObject->objectProperties.z = 1;
+    newObject->objectProperties.z = z;
     newObject->objectProperties.parent = NULL;
-    newObject->objectProperties.moveAbsolute = moveSelectionWindow;
     newObject->objectProperties.show = true;
 
     /* Initialize SelectionWindowData */
     SelectionWindowData* data = (SelectionWindowData*) malloc(sizeof(SelectionWindowData));
     newObject->userData = data;
+    
+    data->height = numOptions;
+    data->width = 0;
+    for (int i = 0; i < numOptions; i++){
+        if (strlen(list[i]) > data->width){
+            data->width = strlen(list[i]);
+        }
+    }
 
-    int width = 20;
-    int height = numOptions;
-    data->panel = createPanel(width, height, xpos, ypos, 1);
-    data->panel->objectProperties.handleEvent = selectionWindowHandleEvents;
     data->numOptions = numOptions;
     
     // Since we're passed pointers that we don't control the memory of, we need to allocate new space on the heap and copy the data over
@@ -57,16 +59,34 @@ GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback
     data->callbacks = (pfn_SelectionCallback*) malloc (sizeof(pfn_SelectionCallback) * numOptions);
     memcpy(data->callbacks, callbacks, sizeof(pfn_SelectionCallback) * numOptions);
 
+    /* Set up buffer */
+    data->buffer = (cchar_t*) malloc(sizeof(cchar_t) * data->width * data->height);
+    
+    /* default char is transparent */
+    for (int x = 0; x < data->width; x++){
+        for (int y = 0; y < data->height; y++){
+            cchar_t* currentChar = &data->buffer[(data->height * x) + y];
+            currentChar->attr = 0;
+            // clear char array
+            currentChar->chars[0] = L'\u00A0';
+            currentChar->chars[1] = 0;
+            currentChar->chars[2] = 0;
+            currentChar->chars[3] = 0;
+            currentChar->chars[4] = 0;
+
+            currentChar->ext_color = 0;
+        }
+    }
+
+    for (int i = 0; i < numOptions; i++){
+        bufferPrintf(data->buffer, data->width, data->height, 0, i, 0, "%s", list[i]);
+    }
+
     /* Register to receive events */
     EventTypeMask typeMask;
     typeMask.mask = 0; // initialize mask - set all feilds to 0
     typeMask.values.keyboardEvent = 1; // we're interested in keyboard events
     engine->mainPanel->registerEventListener(engine->mainPanel, typeMask, selectionWindowHandleEvents, (Object*)newObject);
-
-    /* Draw options to panel */
-    for (int opt = 0; opt < numOptions; opt++){
-        wprintw(data->panel->window, "%s\n", list[opt]);
-    }
 
     return newObject;
 }
@@ -85,10 +105,19 @@ void destroySelectionWindow(GameObject* selectionWindow){
 }
 
 /* SelectionWindow function implementations */
-void drawSelectionWindow(Object* self, Panel* panel){
+void drawSelectionWindow(Object* self, cchar_t* buffer){
     SelectionWindowData* data = (SelectionWindowData*)((GameObject*)self)->userData;
-    top_panel(data->panel->panel);
-    show_panel(data->panel->panel);
+
+    /* Draw buffer */
+    for (int x = 0; x < data->width; x++){
+        for (int y = 0; y < data->height; y++){
+            cchar_t* bufferChar = &data->buffer[(data->height * x) + y];
+            // if char is not NBSP (\u00A0), draw it. (NBSP is transparent character for our case)
+            if (bufferChar->chars[0] != L'\u00A0'){
+                writecharToBuffer(buffer, x, y, *bufferChar);
+            }
+        }
+    }
 }
 
 void updateSelectionWindow(Object* self){
@@ -104,9 +133,4 @@ void selectionWindowHandleEvents(Object* self, Event* event){
             data->callbacks[i]();
         }
     }
-}
-
-void moveSelectionWindow(Object* self, int x, int y){
-    SelectionWindowData* data = (SelectionWindowData*)((GameObject*)self)->userData;
-    move_panel(data->panel->panel, y, x);
 }

@@ -32,14 +32,15 @@
 typedef void(*pfn_SelectionCallback)();
 
 typedef struct SelectionWindowData_s{
-    Panel* panel;
+    cchar_t* buffer;
     char** list;
     char* keys; // array of chars - not string
     pfn_SelectionCallback* callbacks;
+    int width, height;
     int numOptions;
 } SelectionWindowData;
 
-GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback* callbacks, int numOptions, int xpos, int ypos, Engine* engine);
+GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback* callbacks, int numOptions, int xpos, int ypos, int z, Engine* engine);
 void destroySelectionWindow(GameObject* selectionWindow);
 
 /* */

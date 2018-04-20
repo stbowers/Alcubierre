@@ -49,12 +49,12 @@ wchar_t getUTF8CharForCP437Value(int value){
         CP437_UTF8_CODE[1] = L'?';
         CP437_UTF8_CODE[2] = L'?';
         CP437_UTF8_CODE[3] = L'?';
-        CP437_UTF8_CODE[4] = L'?';
+        CP437_UTF8_CODE[4] = L'\u2666'; // ♦
         CP437_UTF8_CODE[5] = L'?';
         CP437_UTF8_CODE[6] = L'?';
         CP437_UTF8_CODE[7] = L'?';
         CP437_UTF8_CODE[8] = L'?';
-        CP437_UTF8_CODE[9] = L'?';
+        CP437_UTF8_CODE[9] = L'\u25CB'; // ○
         CP437_UTF8_CODE[10] = L'?';
         CP437_UTF8_CODE[11] = L'?';
         CP437_UTF8_CODE[12] = L'?';
@@ -75,8 +75,8 @@ wchar_t getUTF8CharForCP437Value(int value){
         CP437_UTF8_CODE[27] = L'?';
         CP437_UTF8_CODE[28] = L'?';
         CP437_UTF8_CODE[29] = L'?';
-        CP437_UTF8_CODE[30] = L'?';
-        CP437_UTF8_CODE[31] = L'?';
+        CP437_UTF8_CODE[30] = L'\u25B2'; // ▲
+        CP437_UTF8_CODE[31] = L'\u25BC'; // ▼
         CP437_UTF8_CODE[127] = L'?';
         
         /* The rest of the chars (128-256) are set to ?
@@ -125,9 +125,9 @@ wchar_t getUTF8CharForCP437Value(int value){
         CP437_UTF8_CODE[205] = L'\u2550'; // ═
         CP437_UTF8_CODE[206] = L'\u256C'; // ╬
         CP437_UTF8_CODE[207] = L'?';
-        CP437_UTF8_CODE[208] = L'?';
+        CP437_UTF8_CODE[208] = L'\u2568'; // ╨
         CP437_UTF8_CODE[209] = L'?';
-        CP437_UTF8_CODE[210] = L'?';
+        CP437_UTF8_CODE[210] = L'\u2565'; // ╥
         CP437_UTF8_CODE[211] = L'?';
         CP437_UTF8_CODE[212] = L'?';
         CP437_UTF8_CODE[213] = L'?';
@@ -152,7 +152,7 @@ wchar_t getUTF8CharForCP437Value(int value){
  * changing colors start changing colors past 16 (standard colors)
  */
 int nextColor = 16;
-int getBestColor(int r, int g, int b){
+int getBestColor(int r, int g, int b, Engine* engine){
     int bestColor = 0;
     float bestr2 = 2e6; // max distance in color space is ~1.96e5, so all colors should be closer than this initial value
     
@@ -192,7 +192,10 @@ int getBestColor(int r, int g, int b){
     }
 
     // else change the next color and return that
+    // We need to have the drawing mutex before calling init_color, because init_color sends control characters to the terminal
+    pthread_mutex_lock(&engine->renderThreadData.drawingMutex);
     init_color(nextColor, r*3.9, g*3.9, b*3.9);
+    pthread_mutex_unlock(&engine->renderThreadData.drawingMutex);
     nextColor++;
     return nextColor - 1;
 }
@@ -201,7 +204,7 @@ int getBestColor(int r, int g, int b){
  * one isn't found make a new one at nextColorPair
  */
 int nextColorPair = 1;
-int getColorPair(int fg, int bg){
+int getColorPair(int fg, int bg, Engine* engine){
     for (int pair = 0; pair < nextColorPair; pair++){
         /* Get colors in pair */
         short pfg, pbg;
@@ -217,61 +220,38 @@ int getColorPair(int fg, int bg){
      * Create a new one at nextColorPair and increment
      * nextColorPair
      */
+    // We need the drawing mutex to use init_pair, since it sends control characters to the terminal
+    pthread_mutex_lock(&engine->renderThreadData.drawingMutex);
     init_pair(nextColorPair, fg, bg);
+    pthread_mutex_unlock(&engine->renderThreadData.drawingMutex);
     nextColorPair++;
     return nextColorPair - 1;
 }
 
 /* Draw function */
-void drawLayerToPanel(XPLayer* layer, Panel* panel, bool clearPanel){
-    WINDOW* win = panel->window;
-
-    /* Set up panel for drawing */
-    if (clearPanel){
-        panel->clearPanel(panel);
-    }
-
-    /* Draw to panel */
-    /* The addch family of functions will place a character onto the
-     * window, and move the cursor right once. For minimal effort we
-     * want to avoid moving the cursor as much as possible. To do this
-     * we want to render characters in lines, so each character can
-     * call addch, one after another. At the end of the line we will
-     * print a newline character, '\n', to move the cursor to the
-     * next line.
-     * Outer loop: y
-     *      print all chars for this line
-     *      print newline char
-     * Inner loop: x
-     *      print the char at x,y
-     * Note: the char at x,y might more accurately described as the
-     * char at y,x since the data is stored in column major order.
-     * So incrementing the index of the data by one moves to the next
-     * row in the same column. So index of (x,y) = (x*height) + y
-     */
-    for (int y = 0; y < layer->height; y++){
-        /* Move cursor to the begining of the line */
-        wmove(win, y, 0);
-
-        /* Draw line */
-        for (int x = 0; x < layer->width; x++){
-            int index = (x*layer->height) + y;
+void drawLayerToBuffer(XPLayer* layer, cchar_t* buffer, bool transparent, Engine* engine){
+    /* Draw to buffer */
+    for (int x = 0; x < layer->width; x++){
+        for (int y = 0; y < layer->height; y++){
+            int index = (layer->height * x) + y;
+            cchar_t* charAt = &buffer[index];
 
             /* Get char data */
             XPChar* xpChar = &layer->data[index];
             wchar_t wch = getUTF8CharForCP437Value(xpChar->value);
 
             /* Draw char */
-            int bg = getBestColor(xpChar->br, xpChar->bg, xpChar->bb);
-            int fg = getBestColor(xpChar->fr, xpChar->fg, xpChar->fb);
-            int colorPair = getColorPair(fg, bg);
+            int bg = getBestColor(xpChar->br, xpChar->bg, xpChar->bb, engine);
+            int fg = getBestColor(xpChar->fr, xpChar->fg, xpChar->fb, engine);
+            int colorPair = getColorPair(fg, bg, engine);
             cchar_t cursesChar = {COLOR_PAIR(colorPair), {wch}};
             //wadd_wch(win, &cursesChar);
-            if (xpChar->br == 255 && xpChar->bg == 0 && xpChar->bb == 255){
-                // if the background is (255, 0, 255) that's REXPaint's signal that the char is transparent, so just skip over it
-                wmove(win, y, x+1);
+            if ((xpChar->br == 255 && xpChar->bg == 0 && xpChar->bb == 255)
+                || (xpChar->value == 0)){
+                // if the background is (255, 0, 255) or the character is null that's REXPaint's signal that the char is transparent, so just skip it
             } else {
-                wadd_wch(win, &cursesChar);
+                // copy char data to the buffer
+                *charAt = cursesChar;
             }
         }
     }

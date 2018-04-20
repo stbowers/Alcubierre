@@ -12,12 +12,11 @@
 
 /* GameObject functions */
 void XPSpriteUpdate(Object* self);
-void XPSpriteDraw(Object* self, Panel* panel);
-void moveXPSprite(Object* self, int absX, int absY);
+void XPSpriteDraw(Object* self, cchar_t* buffer);
 
 /* Implementation of sprites.h functions */
 
-GameObject* createXPSprite(XPFile* texture, int xpos, int ypos, int z){
+GameObject* createXPSprite(XPFile* texture, int xpos, int ypos, int z, Engine* engine){
     /* Create Game Object */
     GameObject* newObject = (GameObject*)malloc(sizeof(GameObject));
     newObject->timeCreated = getTimems();
@@ -33,7 +32,6 @@ GameObject* createXPSprite(XPFile* texture, int xpos, int ypos, int z){
     newObject->objectProperties.y = ypos;
     newObject->objectProperties.z = z;
     newObject->objectProperties.parent = NULL;
-    newObject->objectProperties.moveAbsolute = moveXPSprite;
     newObject->objectProperties.show = true;
 
     /* Game Object properties */
@@ -45,25 +43,32 @@ GameObject* createXPSprite(XPFile* texture, int xpos, int ypos, int z){
     data->textureData->width = texture->layers[0].width;
     data->textureData->height = texture->layers[0].height;
 
-    /* Create panel */
-    data->textureData->panel = createPanel(data->textureData->width, data->textureData->height, xpos, ypos, 0);
-    for (int layer = 0; layer < texture->numLayers; layer++){
-        /* Draw layer */
-        drawLayerToPanel(&texture->layers[layer], data->textureData->panel, false); 
+    /* Create texture buffer */
+    data->textureData->textureBuffer = (cchar_t*) malloc(sizeof(cchar_t)*data->textureData->width*data->textureData->height);
+
+    /* Initialize texture buffer with transparent cells */
+    for (int x = 0; x < data->textureData->width; x++){
+        for (int y = 0; y < data->textureData->height; y++){
+            cchar_t* backgroundChar = &data->textureData->textureBuffer[(data->textureData->height * x) + y];
+            backgroundChar->attr = 0;
+            // transparent cell denoted by NBSP unicode character
+            backgroundChar->chars[0] = L'\u00A0';
+        }
+    }
+
+    /* Draw texture to buffer */
+    for (int layer = 0; layer < data->texture->numLayers; layer++){
+        drawLayerToBuffer(&data->texture->layers[layer], data->textureData->textureBuffer, true, engine);
     }
 
     return newObject;
 }
 
 void destroyXPSprite(GameObject* sprite){
+    free(((XPSpriteData*)sprite->userData)->textureData->textureBuffer);
     free(((XPSpriteData*)sprite->userData)->textureData);
     free(sprite->userData);
     free(sprite);
-}
-
-void moveXPSprite(Object* self, int x, int y){
-    XPSpriteData* data = (XPSpriteData*)((GameObject*)self)->userData;
-    move_panel(data->textureData->panel->panel, y, x);
 }
 
 /* Implementation of custom functions */
@@ -71,8 +76,17 @@ void XPSpriteUpdate(Object* self){
 
 }
 
-void XPSpriteDraw(Object* self, Panel* panel){
+void XPSpriteDraw(Object* self, cchar_t* buffer){
     XPSpriteData* data = (XPSpriteData*)((GameObject*)self)->userData;
-    top_panel(data->textureData->panel->panel);
-    show_panel(data->textureData->panel->panel);
+
+    /* Add chars from textureBuffer to buffer */
+    for (int x = 0; x < data->textureData->width; x++){
+        for (int y = 0; y < data->textureData->height; y++){
+            cchar_t* textureChar = &data->textureData->textureBuffer[(data->textureData->height * x) + y];
+            // if char is not NBSP (\u00A0), draw it. (NBSP is transparent character for our case)
+            if (textureChar->chars[0] != L'\u00A0'){
+                writecharToBuffer(buffer, x, y, *textureChar);
+            }
+        }
+    }
 }

@@ -13,10 +13,40 @@
 // Stores the game state - used by AlcubierreGame.c not by engine
 typedef struct AlcubierreGameState_s{
     Engine* engine;
-    GameObject* titleScreen;
-    GameObject* overviewScreen;
+
+    Panel* titleScreen;
+    Panel* overviewScreen;
+
+    /* Listener lists - overwrite lister list for the active panel
+     * allowing our game to easily switch modes
+     */
+    EventListener* titleScreenListenerList;
+    EventListener* overviewScreenListenerList;
+
+    /* World State */
+    enum LocationSate_e{
+        LOCATION_UNKNOWN,
+        LOCATION_CURRENT,
+        LOCATION_COMPLETED,
+        LOCATION_SKIPPED,
+    } locations[9];
 } AlcubierreGameState;
+extern AlcubierreGameState gameState;
+extern pthread_mutex_t gameStateMutex;
 
 void startGame(Engine* engine);
+
+void playCallback();
+void infoCallback();
+void backstoryCallback();
+void exitCallback();
+
+void initializeWorldState();
+void runIntroSequence();
+void buildTitleScreen();
+void buildOverviewScreen();
+
+void updateTitleScreen();
+void updateOverviewScreen();
 
 #endif //__ALCUBIERREGAME_H__
