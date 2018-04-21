@@ -11,8 +11,7 @@
 #include <stdlib.h>
 
 /* GameObject functions */
-void XPSpriteUpdate(Object* self);
-void XPSpriteDraw(Object* self, cchar_t* buffer);
+void XPSpriteDraw(Object* self, CursesChar* buffer);
 
 /* Implementation of sprites.h functions */
 
@@ -23,7 +22,6 @@ GameObject* createXPSprite(XPFile* texture, int xpos, int ypos, int z, Engine* e
     
     /* Base Object Properties */
     newObject->objectProperties.drawObject = XPSpriteDraw;
-    newObject->objectProperties.update = XPSpriteUpdate;
     newObject->objectProperties.handleEvent = NULL;
     newObject->objectProperties.next = NULL;
     newObject->objectProperties.previous = NULL;
@@ -44,15 +42,15 @@ GameObject* createXPSprite(XPFile* texture, int xpos, int ypos, int z, Engine* e
     data->textureData->height = texture->layers[0].height;
 
     /* Create texture buffer */
-    data->textureData->textureBuffer = (cchar_t*) malloc(sizeof(cchar_t)*data->textureData->width*data->textureData->height);
+    data->textureData->textureBuffer = (CursesChar*) malloc(sizeof(CursesChar)*data->textureData->width*data->textureData->height);
 
     /* Initialize texture buffer with transparent cells */
     for (int x = 0; x < data->textureData->width; x++){
         for (int y = 0; y < data->textureData->height; y++){
-            cchar_t* backgroundChar = &data->textureData->textureBuffer[(data->textureData->height * x) + y];
-            backgroundChar->attr = 0;
+            CursesChar* backgroundChar = &data->textureData->textureBuffer[(data->textureData->height * x) + y];
+            backgroundChar->attributes = 0;
             // transparent cell denoted by NBSP unicode character
-            backgroundChar->chars[0] = L'\u00A0';
+            backgroundChar->character = L'\u00A0';
         }
     }
 
@@ -72,20 +70,16 @@ void destroyXPSprite(GameObject* sprite){
 }
 
 /* Implementation of custom functions */
-void XPSpriteUpdate(Object* self){
-
-}
-
-void XPSpriteDraw(Object* self, cchar_t* buffer){
+void XPSpriteDraw(Object* self, CursesChar* buffer){
     XPSpriteData* data = (XPSpriteData*)((GameObject*)self)->userData;
 
     /* Add chars from textureBuffer to buffer */
     for (int x = 0; x < data->textureData->width; x++){
         for (int y = 0; y < data->textureData->height; y++){
-            cchar_t* textureChar = &data->textureData->textureBuffer[(data->textureData->height * x) + y];
+            CursesChar* textureChar = &data->textureData->textureBuffer[(data->textureData->height * x) + y];
             // if char is not NBSP (\u00A0), draw it. (NBSP is transparent character for our case)
-            if (textureChar->chars[0] != L'\u00A0'){
-                writecharToBuffer(buffer, x, y, *textureChar);
+            if (textureChar->character != L'\u00A0'){
+                writecharToBuffer(buffer, x, y, textureChar);
             }
         }
     }

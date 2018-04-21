@@ -12,6 +12,21 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 # Set up unique settings for each platform
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     # Windows settings
+    add_definitions(-D__WIN32__)
+    set(CMAKE_C_FLAGS "")
+
+    # LIBRARY_BASE is where all our custom find{package}.cmake files will look for the libraries, after all local locations
+    set(LIBRARY_BASE "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC")
+
+    # Tell cmake where to look for ncurses (pdcurses)
+    set(PDCURSES_BASE C:/pdcurs34)
+    set(ZLIB_BASE C:/zlib1211)
+
+    # Load packages for libraries we use
+    find_package(pdcurses)
+    find_package(zlib)
+    set(PROJECT_LIBRARIES ${PDCURSES_LIBRARY} ${ZLIB_LIBRARY})
+    set(PROJECT_INCLUDE_DIRS ${PDCURSES_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})
 endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     # GNU/Linux settings

@@ -9,14 +9,34 @@
 #ifndef __ENGINE_H__
 #define __ENGINE_H__
 
+#ifdef __WIN32__
+#define PDC_WIDE
+#define PDC_RGB
+#include <curses.h>
+
+// Set up true and false for windows
+#define true TRUE
+#define false FALSE
+#elif __UNIX__
 #define _XOPEN_SOURCE_EXTENDED
 #include <ncurses.h>
+#endif
+
 #include <panel.h>
 #include <events.h>
-#include <pthread.h>
+#include <threads.h>
+#include <stdint.h>
 
 /* Data Structures */
 struct Panel_s;
+
+/* Structure to hold characters and their attributes, ready to
+ * print with curses
+ */
+typedef struct CursesChar_s{
+    attr_t attributes;
+    wchar_t character;
+} CursesChar;
 
 /* Object structure, holds all data common to 'objects'
  * for the engine. Objects are anything that is drawn
@@ -55,7 +75,7 @@ typedef struct Object_s{
     // NOTE: buffer can point anywhere inside of a stdscr buffer. This function
     // should draw relative to that pointer instead of trying to calculate
     // absolute positions. This can be done with writewchToBuffer();
-    void (*drawObject)(struct Object_s* self, cchar_t* buffer);
+    void (*drawObject)(struct Object_s* self, CursesChar* buffer);
 
     // Handle an event, called from the events thread
     /* NOTE: any intensive processing that needs to be
@@ -64,9 +84,6 @@ typedef struct Object_s{
      * event thread.
      */
     void (*handleEvent)(struct Object_s* self, Event* event);
-
-    // Update the object's data. Called once per 'tick' from the main game loop
-    void (*update)(struct Object_s* self);
 } Object;
 
 typedef struct EventListener_s{
@@ -85,7 +102,7 @@ typedef struct Panel_s{
     int width, height;
 
     /* Background buffer - rendered below any objects in this panel */
-    cchar_t* backgroundBuffer;
+    CursesChar* backgroundBuffer;
 
     /* Event delegation */
     EventListener* listeners;
@@ -128,10 +145,10 @@ typedef struct Engine_s{
     /* Buffer of ncurses characters to print to the screen */
     // Array stored in column-major order - char at (x, y) = screenBuffer + (height*x) + y
     // Two buffers allocated for double buffer rendering system
-    cchar_t* stdscrBuffer1;
-    cchar_t* stdscrBuffer2;
+    CursesChar* stdscrBuffer1;
+    CursesChar* stdscrBuffer2;
     // Buffer copied to the render buffer (stdscrBuffer1/2) before rendering; effectively the background
-    cchar_t* backgroundBuffer;
+    CursesChar* backgroundBuffer;
     // size of the above buffers in bytes
     int stdscrBufferSize;
     // width and height of the screen
@@ -147,13 +164,20 @@ typedef struct Engine_s{
      * thread (see below). The event thread and main thread may become out
      * of sync, but they should *on average* loop at the same tick rate.
      */
-    pthread_t eventThread;
+    Thread_t eventThread;
     struct EventThreadData_s{
-        pthread_mutex_t dataMutex;
-        pthread_cond_t newEventSignal;
+        /* Shared resources */
+        ThreadLock_t dataLock;
+        /* resources protected by dataLock */
+        // signaled when an external change is made to queuedEvents
+        ThreadCondition_t eventQueueChanged;
+        // Linked list of events queued to be processed
         Event* queuedEvents;
-        Event** queueEnd; // pointer to the pointer that should be set to add a new event to the end of the queue (the last node's ->next, or the start if queue is empty)
-        bool runEventThread;
+        // Pointer to the next pointer at the end of the list - for quick additions to end of list
+        Event** queueEnd;
+        // Should the event thread exit?
+        bool exit;
+        /* End of dataLock resources */
     } eventThreadData;
 
     /* The game thread runs continously on a tickrate defined by MS_PER_TICK
@@ -162,7 +186,7 @@ typedef struct Engine_s{
      * to keep its tickrate constant by only sleeping until its total loop
      * time is MS_PER_TICK, rather than sleeping for MS_PER_TICK every loop.
      */
-    pthread_t gameThread;
+    Thread_t gameThread;
 
     /* The render thread runs continously at a framerate defined by
      * MS_PER_FRAME, which determines how long a frame should last.
@@ -172,48 +196,36 @@ typedef struct Engine_s{
      * drawingThread is the thread used to draw the non-rendering buffer to the screen
      * renderTimerThread is the timer thread which syncs the other threads to an fps
      */
-    pthread_t renderThread;
-    pthread_t drawingThread;
-    pthread_t renderTimerThread;
-    struct RenderThreadData_s{
-        pthread_mutex_t dataMutex;
+    Thread_t renderThread;
+    Thread_t drawingThread;
+    Thread_t renderTimerThread;
 
-        /* dataMutex resources */
-        bool render; // should the render thread be rendering right now?
-        int fps_calculated; // The current fps being rendered
-        bool renderDrawSyncWaiting; // if the render thread or drawing thread is waiting for the other to sync
-        pthread_cond_t renderDrawSync; // signal the render or drawing thread has caught up with the other
-        pthread_cond_t renderSignal; // Used to signal a change in render to the render thread
+    struct RenderThreadData_s{
+        /* Barriers */
+        // syncs the render and draw threads
+        ThreadBarrier_t renderDrawBarrier;
+        // syncs all threads with the timer thread
+        ThreadBarrier_t timerBarrier;
+
+        /* Shared resources */
+        ThreadLock_t dataLock;
+        /* dataLock resources */
+        bool exit; // should the render, draw, and timer threads exit?
+        float fps_calculated; // The current fps being rendered
+        unsigned int framesRendered; // The total number of frames that have been rendered
+        ThreadCondition_t engineRenderReady; // don't start the render/draw/time threads until this is signaled
         /* end of dataMutex resources */
 
-        pthread_mutex_t renderMutex;
+        ThreadLock_t renderLock;
         /* resources accessed by render thread */
-        cchar_t** renderBuffer; // pointer to the cchar_t buffer to render to
+        CursesChar** renderBuffer; // pointer to the CursesChar buffer to render to
         /* end of renderMutex resources */
 
-        pthread_mutex_t drawingMutex;
+        ThreadLock_t drawLock;
         /* resources accessed by drawing thread */
-        cchar_t** drawingBuffer; // pointer to the cchar_t buffer to draw from
+        CursesChar** drawingBuffer; // pointer to the CursesChar buffer to draw from
         /* end of renderMutex resources */
-        
-        pthread_mutex_t timerMutex;
-        /* timerMutex resources */
-        pthread_cond_t timerSignal;
-        bool timerExit;
-        /* end of timerMutex resources */
     } renderThreadData;
-
-    /* Global thread data
-     * Contains info about the whole program that any thread might be intersted in
-     */
-    struct GlobalThreadData_s{
-        pthread_mutex_t dataMutex;
-        /* bool to hold if the engine is currently running. If false,
-         * threads should shutdown
-         */
-        bool isRunning;
-        pthread_cond_t exitSignal; // signaled when isRunning is set to false (should broadcast, since multiple threads _might_ be waiting on this)
-    } globalThreadData;
 } Engine;
 
 // Structure to hold data for game objects
@@ -259,11 +271,11 @@ void getAbsolutePosition(Object* parent, int relX, int relY, int* absX, int* abs
  * that location, in other words x and y need not be absolute, only relative to the
  * pointer passed here.
  */
-void writewchToBuffer(cchar_t* buffer, int x, int y, unsigned int attr, wchar_t wch[5]);
+void writewcharToBuffer(CursesChar* buffer, int x, int y, attr_t attr, wchar_t wch);
 
-/* Same as above, but accepts a cchar_t
+/* Same as above, but accepts a CursesChar
  */
-void writecharToBuffer(cchar_t* buffer, int x, int y, cchar_t ch);
+void writecharToBuffer(CursesChar* buffer, int x, int y, CursesChar* ch);
 
 /* printf style formatting to print text to a buffer
  * NOTE: this function only accepts normal width (1 byte) characters
@@ -273,7 +285,7 @@ void writecharToBuffer(cchar_t* buffer, int x, int y, cchar_t ch);
  *  and height is the height of the buffer (does need to be the actual height
  *  for proper formatting)
  */
-void bufferPrintf(cchar_t* buffer, int width, int height, int x, int y, unsigned int attr, const char* format, ...);
+void bufferPrintf(CursesChar* buffer, int width, int height, int x, int y, unsigned int attr, const char* format, ...);
 
 /* Returns a timestamp in milliseconds, from an undefined
  * starting time. (Monotonic clock)

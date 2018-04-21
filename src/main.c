@@ -5,12 +5,15 @@
  *
  * Licensed under the MIT License (see LICENSE.txt)
  */
+#include <engine.h>
 #include <stdlib.h>
 #include <locale.h>
-#include <engine.h>
 #include <AlcubierreGame.h>
 
 int main(){
+	/* Block for attaching debugger or resizing window before running code */
+	getchar();
+
     /* Set locale for proper ncurses use */
     setlocale(LC_CTYPE, "");
 
@@ -34,12 +37,10 @@ int main(){
 
     wclear(engine->stdscr);
 
-    /* Start the render thread */
-    // Signal the render thread to start
-    pthread_mutex_lock(&engine->renderThreadData.dataMutex);
-    engine->renderThreadData.render = true;
-    pthread_cond_signal(&engine->renderThreadData.renderSignal);
-    pthread_mutex_unlock(&engine->renderThreadData.dataMutex);
+    /* Send engine ready for rendering signal to start rendering */
+    lockThreadLock(&engine->renderThreadData.dataLock);
+    broadcastConditionSignal(&engine->renderThreadData.engineRenderReady);
+    unlockThreadLock(&engine->renderThreadData.dataLock);
 
     /* Run the game */
     // call to startGame in AlcubierreGame.c
@@ -68,6 +69,7 @@ int main(){
             keyEvent->eventType.mask = 0;
             keyEvent->eventType.values.keyboardEvent = TRUE;
             keyEvent->eventData = &input;
+			keyEvent->next = NULL;
 
             // send events
             engine->handleEvent(engine, keyEvent);

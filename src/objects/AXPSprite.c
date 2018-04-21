@@ -11,8 +11,7 @@
 #include <stdlib.h>
 
 /* GameObject functions */
-void AXPSpriteUpdate(Object* self);
-void AXPSpriteDraw(Object* self, cchar_t* buffer);
+void AXPSpriteDraw(Object* self, CursesChar* buffer);
 
 /* Implementation of sprites.h functions */
 
@@ -23,7 +22,6 @@ GameObject* createAXPSprite(AXPFile* texture, int xpos, int ypos, Engine* engine
     
     /* Base Object Properties */
     newObject->objectProperties.drawObject = AXPSpriteDraw;
-    newObject->objectProperties.update = AXPSpriteUpdate;
     newObject->objectProperties.handleEvent = NULL;
     newObject->objectProperties.next = NULL;
     newObject->objectProperties.previous = NULL;
@@ -44,7 +42,6 @@ GameObject* createAXPSprite(AXPFile* texture, int xpos, int ypos, Engine* engine
     data->textureData->height = texture->xpFile->layers[0].height;
     data->textureData->currentFrame = 0;
     data->fps = texture->fps;
-    pthread_mutex_init(&data->spriteMutex, NULL);
 
     /* Create panel for each frame */
   //data->textureData->frames = (Panel**) malloc(sizeof(Panel*) * texture->xpFile->numLayers);
@@ -74,24 +71,7 @@ void destroyAXPSprite(GameObject* sprite){
 }
 
 /* Implementation of custom functions */
-void AXPSpriteUpdate(Object* self){
-    uint64_t timePassed = ((GameObject*)self)->timeCreated - getTimems();
-    AXPSpriteData* data = ((AXPSpriteData*)((GameObject*)self)->userData);
-    
-    /* Get mutex */
-    pthread_mutex_lock(&data->spriteMutex);
-    
-    /* Calculate what frame we should be on */
-    // timepassed ms |  fps frames  |   1 s   |  = frames passed  -> frames passed % number of frames = current frame
-    //      1        |      s       | 1000 ms | 
-    int framesPassed = (timePassed*data->fps)/(1000.0f);
-    data->textureData->currentFrame++;//(framesPassed)%(data->texture->xpFile->numLayers);
-
-    /* Unlock mutex */
-    pthread_mutex_unlock(&data->spriteMutex);
-}
-
-void AXPSpriteDraw(Object* self, cchar_t* buffer){
+void AXPSpriteDraw(Object* self, CursesChar* buffer){
     AXPSpriteData* data = (AXPSpriteData*)((GameObject*)self)->userData;
 
   ///* Get mutex */

@@ -32,7 +32,7 @@
 typedef void(*pfn_SelectionCallback)();
 
 typedef struct SelectionWindowData_s{
-    cchar_t* buffer;
+    CursesChar* buffer;
     char** list;
     char* keys; // array of chars - not string
     pfn_SelectionCallback* callbacks;

@@ -22,7 +22,7 @@
 
 typedef struct XPSpriteTextureData_s{
     int width, height;
-    cchar_t* textureBuffer;
+    CursesChar* textureBuffer;
 } XPSpriteTextureData;
 
 typedef struct XPSpriteData_s{
@@ -37,13 +37,12 @@ void destroyXPSprite(GameObject* sprite);
 
 typedef struct AXPSpriteTextureData_s{
     int width, height, currentFrame;
-    cchar_t** frames; // array of buffers for each frame
+    CursesChar** frames; // array of buffers for each frame
 } AXPSpriteTextureData;
 
 typedef struct AXPSpriteData_s{
     AXPFile* texture; // Original texture file
     AXPSpriteTextureData* textureData; // Data optimized for rendering
-    pthread_mutex_t spriteMutex; // lock data before modifying resources the render thread might use
     int fps; // fps this animation runs at
 } AXPSpriteData;
 

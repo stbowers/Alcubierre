@@ -13,8 +13,7 @@
 #include <string.h>
 
 /* SelectionWindow functions */
-void drawSelectionWindow(Object* self, cchar_t* buffer);
-void updateSelectionWindow(Object* self);
+void drawSelectionWindow(Object* self, CursesChar* buffer);
 void selectionWindowHandleEvents(Object* self, Event* event);
 
 /* ui.h implementation */
@@ -27,7 +26,6 @@ GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback
     /* Initialize object properties */
     newObject->objectProperties.drawObject = drawSelectionWindow;
     newObject->objectProperties.handleEvent = selectionWindowHandleEvents;
-    newObject->objectProperties.update = updateSelectionWindow;
     newObject->objectProperties.next = NULL;
     newObject->objectProperties.previous = NULL;
     newObject->objectProperties.type = OBJECT_GAMEOBJECT;
@@ -60,21 +58,15 @@ GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback
     memcpy(data->callbacks, callbacks, sizeof(pfn_SelectionCallback) * numOptions);
 
     /* Set up buffer */
-    data->buffer = (cchar_t*) malloc(sizeof(cchar_t) * data->width * data->height);
+    data->buffer = (CursesChar*) malloc(sizeof(CursesChar) * data->width * data->height);
     
     /* default char is transparent */
     for (int x = 0; x < data->width; x++){
         for (int y = 0; y < data->height; y++){
-            cchar_t* currentChar = &data->buffer[(data->height * x) + y];
-            currentChar->attr = 0;
+            CursesChar* currentChar = &data->buffer[(data->height * x) + y];
+            currentChar->attributes = 0;
             // clear char array
-            currentChar->chars[0] = L'\u00A0';
-            currentChar->chars[1] = 0;
-            currentChar->chars[2] = 0;
-            currentChar->chars[3] = 0;
-            currentChar->chars[4] = 0;
-
-            currentChar->ext_color = 0;
+            currentChar->character = L'\u00A0';
         }
     }
 
@@ -105,23 +97,19 @@ void destroySelectionWindow(GameObject* selectionWindow){
 }
 
 /* SelectionWindow function implementations */
-void drawSelectionWindow(Object* self, cchar_t* buffer){
+void drawSelectionWindow(Object* self, CursesChar* buffer){
     SelectionWindowData* data = (SelectionWindowData*)((GameObject*)self)->userData;
 
     /* Draw buffer */
     for (int x = 0; x < data->width; x++){
         for (int y = 0; y < data->height; y++){
-            cchar_t* bufferChar = &data->buffer[(data->height * x) + y];
+            CursesChar* bufferChar = &data->buffer[(data->height * x) + y];
             // if char is not NBSP (\u00A0), draw it. (NBSP is transparent character for our case)
-            if (bufferChar->chars[0] != L'\u00A0'){
-                writecharToBuffer(buffer, x, y, *bufferChar);
+            if (bufferChar->character != L'\u00A0'){
+                writecharToBuffer(buffer, x, y, bufferChar);
             }
         }
     }
-}
-
-void updateSelectionWindow(Object* self){
-
 }
 
 void selectionWindowHandleEvents(Object* self, Event* event){

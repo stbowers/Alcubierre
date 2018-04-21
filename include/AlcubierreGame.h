@@ -32,7 +32,7 @@ typedef struct AlcubierreGameState_s{
     } locations[9];
 } AlcubierreGameState;
 extern AlcubierreGameState gameState;
-extern pthread_mutex_t gameStateMutex;
+extern ThreadLock_t gameStateMutex;
 
 void startGame(Engine* engine);
 

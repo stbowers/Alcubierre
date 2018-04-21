@@ -12,17 +12,19 @@
 
 /* gameState is a global variable (defined as extern in AlcubierreGame.h) for use by any
  * functions that need references to game objects or information about the state of the
- * game world. Access to gameState is protected by gameStateMutex.
+ * game world. Access to gameState is protected by gameStateLock.
  */
 AlcubierreGameState gameState;
-pthread_mutex_t gameStateMutex;
+ThreadLock_t gameStateLock;
 
 void startGame(Engine* engine){
     /* Initialize gameState mutex and lock it */
-    pthread_mutex_init(&gameStateMutex, NULL);
-    /* Set the engine in the game state, so other functions can use it */
+    createLock(&gameStateLock);
+    lockThreadLock(&gameStateLock);
+    
+	/* Set the engine in the game state, so other functions can use it */
     gameState.engine = engine;
-
+	
     /* Initialize world state */
     initializeWorldState();
 
@@ -33,6 +35,9 @@ void startGame(Engine* engine){
     /* Run the intro sequence */
     runIntroSequence();
     
+	/* Unlock game state lock */
+	unlockThreadLock(&gameStateLock);
+
     /* Show title screen */
     engine->mainPanel->childrenList = (Object*)gameState.titleScreen;
 
@@ -188,11 +193,17 @@ void clearInfoPanel(){
 }
 
 void playCallback(){
+	/* Get render lock so we're not changing the main panel's state while rendering */
+	lockThreadLock(&gameState.engine->renderThreadData.renderLock);
+
     /* Change main panel's children list to the overview screen */
     gameState.engine->mainPanel->childrenList = (Object*)gameState.overviewScreen;
 
     /* Change event listeners to those for the overview screen */
     gameState.engine->mainPanel->listeners = gameState.overviewScreenListenerList;
+
+	/* Release render lock */
+	unlockThreadLock(&gameState.engine->renderThreadData.renderLock);
 }
 
 void infoCallback(){

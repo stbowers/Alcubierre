@@ -11,7 +11,6 @@
 #define __XPFUNCTIONS_H__
 
 #include <engine.h>
-#include <panel.h>
 #include <inttypes.h>
 
 /* XP File structures */
@@ -93,6 +92,6 @@ void freeAXPFile(AXPFile* file);
  *      at the proper time (showing/hiding panels is almost
  *      instant compared to painting a whole layer)
  */
-void drawLayerToBuffer(XPLayer* layer, cchar_t* buffer, bool transparent, Engine* engine);
+void drawLayerToBuffer(XPLayer* layer, CursesChar* buffer, bool transparent, Engine* engine);
 
 #endif //__XPFUNCTIONS_H__

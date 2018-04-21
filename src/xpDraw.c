@@ -193,9 +193,9 @@ int getBestColor(int r, int g, int b, Engine* engine){
 
     // else change the next color and return that
     // We need to have the drawing mutex before calling init_color, because init_color sends control characters to the terminal
-    pthread_mutex_lock(&engine->renderThreadData.drawingMutex);
+    lockThreadLock(&engine->renderThreadData.drawLock);
     init_color(nextColor, r*3.9, g*3.9, b*3.9);
-    pthread_mutex_unlock(&engine->renderThreadData.drawingMutex);
+    unlockThreadLock(&engine->renderThreadData.drawLock);
     nextColor++;
     return nextColor - 1;
 }
@@ -221,20 +221,20 @@ int getColorPair(int fg, int bg, Engine* engine){
      * nextColorPair
      */
     // We need the drawing mutex to use init_pair, since it sends control characters to the terminal
-    pthread_mutex_lock(&engine->renderThreadData.drawingMutex);
+    lockThreadLock(&engine->renderThreadData.drawLock);
     init_pair(nextColorPair, fg, bg);
-    pthread_mutex_unlock(&engine->renderThreadData.drawingMutex);
+    unlockThreadLock(&engine->renderThreadData.drawLock);
     nextColorPair++;
     return nextColorPair - 1;
 }
 
 /* Draw function */
-void drawLayerToBuffer(XPLayer* layer, cchar_t* buffer, bool transparent, Engine* engine){
+void drawLayerToBuffer(XPLayer* layer, CursesChar* buffer, bool transparent, Engine* engine){
     /* Draw to buffer */
     for (int x = 0; x < layer->width; x++){
         for (int y = 0; y < layer->height; y++){
             int index = (layer->height * x) + y;
-            cchar_t* charAt = &buffer[index];
+            CursesChar* charAt = &buffer[index];
 
             /* Get char data */
             XPChar* xpChar = &layer->data[index];
@@ -244,7 +244,9 @@ void drawLayerToBuffer(XPLayer* layer, cchar_t* buffer, bool transparent, Engine
             int bg = getBestColor(xpChar->br, xpChar->bg, xpChar->bb, engine);
             int fg = getBestColor(xpChar->fr, xpChar->fg, xpChar->fb, engine);
             int colorPair = getColorPair(fg, bg, engine);
-            cchar_t cursesChar = {COLOR_PAIR(colorPair), {wch}};
+            CursesChar cursesChar;
+            cursesChar.attributes = COLOR_PAIR(colorPair);
+            cursesChar.character = wch;
             //wadd_wch(win, &cursesChar);
             if ((xpChar->br == 255 && xpChar->bg == 0 && xpChar->bb == 255)
                 || (xpChar->value == 0)){

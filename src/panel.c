@@ -13,7 +13,7 @@
 /* Default panel functions */
 void defaultAddObject(Panel* self, Object* newObject);
 void defaultRemoveObject(Panel* self, Object* toRemove);
-void defaultDrawPanel(Object* self, cchar_t* buffer);
+void defaultDrawPanel(Object* self, CursesChar* buffer);
 void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, Event* event), Object* listener);
 void defaultPanelHandleEvent(Object* self, Event* event);
 
@@ -43,24 +43,21 @@ Panel* createPanel(int width, int height, int x, int y, int z){
     newPanel->listeners = NULL;
     newPanel->nextListener = &newPanel->listeners; // next listener should be put at newPanel->listeners
 
+	/* Set up children list */
+	newPanel->childrenList = NULL;
+
     /* Create background buffer */
     newPanel->width = width;
     newPanel->height = height;
-    newPanel->backgroundBuffer = (cchar_t*) malloc(sizeof(cchar_t)*width*height);
+    newPanel->backgroundBuffer = (CursesChar*) malloc(sizeof(CursesChar)*width*height);
 
     /* Fill background buffer */
     for (int x = 0; x < newPanel->width; x++){
         for (int y = 0; y < newPanel->height; y++){
-            cchar_t* currentChar = &newPanel->backgroundBuffer[(newPanel->height * x) + y];
-            currentChar->attr = 0;
+            CursesChar* currentChar = &newPanel->backgroundBuffer[(newPanel->height * x) + y];
+            currentChar->attributes = 0;
             // clear char array
-            currentChar->chars[0] = L'\u00A0';
-            currentChar->chars[1] = 0;
-            currentChar->chars[2] = 0;
-            currentChar->chars[3] = 0;
-            currentChar->chars[4] = 0;
-
-            currentChar->ext_color = 0;
+			currentChar->character = L'-';//L'\u00A0';
         }
     }
 
@@ -120,14 +117,14 @@ void defaultRemoveObject(Panel* self, Object* toRemove){
     }
 }
 
-void defaultDrawPanel(Object* self, cchar_t* buffer){
+void defaultDrawPanel(Object* self, CursesChar* buffer){
     /* Draw background buffer */
     for (int x = 0; x < ((Panel*)self)->width; x++){
         for (int y = 0; y < ((Panel*)self)->height; y++){
-            cchar_t* backgroundChar = &((Panel*)self)->backgroundBuffer[((((Panel*)self)->height) * x) + y];
+            CursesChar* backgroundChar = &((Panel*)self)->backgroundBuffer[((((Panel*)self)->height) * x) + y];
             // if background char is not NBSP (\u00A0), draw it. (NBSP is transparent character for our case)
-            if (backgroundChar->chars[0] != L'\u00A0'){
-                writecharToBuffer(buffer, x, y, *backgroundChar);
+            if (backgroundChar->character != L'\u00A0'){
+                writecharToBuffer(buffer, x, y, backgroundChar);
             }
         }
     }
@@ -137,7 +134,7 @@ void defaultDrawPanel(Object* self, cchar_t* buffer){
     while (current != NULL){
         if (current->show){
             // get the offset into buffer at the x,y position of the object
-            cchar_t* bufferAtObject = &buffer[(LINES * current->x) + current->y];
+            CursesChar* bufferAtObject = &buffer[(LINES * current->x) + current->y];
             // draw the object at it's location
             current->drawObject(current, bufferAtObject);
         }
