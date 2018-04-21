@@ -145,8 +145,28 @@ Engine* initializeEngine(int width, int height){
 }
 
 void destroyEngine(Engine* engine){
+	/* Tell threads to exit */
+	// event thread
+	lockThreadLock(&engine->eventThreadData.dataLock);
+	engine->eventThreadData.exit = true;
+	// we also need to signal the event thread, as it may be waiting for a signal that would otherwise never come
+	sendConditionSignal(&engine->eventThreadData.eventQueueChanged);
+	unlockThreadLock(&engine->eventThreadData.dataLock);
+
+	// render thread
+	lockThreadLock(&engine->renderThreadData.dataLock);
+	engine->renderThreadData.exit = true;
+	unlockThreadLock(&engine->renderThreadData.dataLock);
+
+	/* Join threads */
+	joinThread(&engine->eventThread);
+	// The render thread joins the draw thread and render timer thread, so we only need to join the base render thread
+	joinThread(&engine->renderThread);
+
     /* Free any memory we control */
-    free(engine->mainPanel);
+	// we own the memory for mainPanel, but not it's children. destroying a panel doesn't free it's children
+	// so if a thread calls destroyEngine they should take care of any objects they've added to mainPanel first.
+    destroyPanel(engine->mainPanel);
 
     free(engine);
 
@@ -313,6 +333,18 @@ int eventThreadFunction(void* data){
         /* Check if we should exit */
         if (engine->eventThreadData.exit){
             /* Clean up resources */
+			if (engine->eventThreadData.queuedEvents != NULL) {
+				// If any new events were added to queue, free the memory
+				Event* current = engine->eventThreadData.queuedEvents;
+				while (current != NULL) {
+					Event* next = current->next;
+					free(current);
+					current = next;
+				}
+			}
+
+			unlockThreadLock(&engine->eventThreadData.dataLock);
+
             /* Exit */
             exitThread(0);
         }
@@ -383,7 +415,12 @@ int renderThreadFunction(void* data){
         /* Check if we should exit */
         if (engine->renderThreadData.exit){
             /* Clean up */
-            /* Join draw thread & timer thread */
+            unlockThreadLock(&engine->renderThreadData.dataLock);
+
+			/* Join draw thread & timer thread */
+			joinThread(&engine->drawingThread);
+			joinThread(&engine->renderTimerThread);
+
             /* Exit */
             exitThread(0);
         }
@@ -418,7 +455,9 @@ int drawingThreadFunction(void* data){
 
         // Print debug info at top left
         wmove(engine->stdscr, 0,0);
+		lockThreadLock(&engine->renderThreadData.dataLock);
         wprintw(engine->stdscr, "FPS: %.2f", engine->renderThreadData.fps_calculated);
+		unlockThreadLock(&engine->renderThreadData.dataLock);
 
         wrefresh(engine->stdscr);
 
@@ -437,6 +476,8 @@ int drawingThreadFunction(void* data){
         /* Check if we should exit */
         if (engine->renderThreadData.exit){
             /* Clean up */
+			unlockThreadLock(&engine->renderThreadData.dataLock);
+
             /* Exit */
             exitThread(0);
         }
@@ -470,6 +511,8 @@ int renderTimerThreadFunction(void* data){
         /* Check if we should exit */
         if (engine->renderThreadData.exit){
             /* Clean up */
+			unlockThreadLock(&engine->renderThreadData.dataLock);
+
             /* Exit */
             exitThread(0);
         }

@@ -65,7 +65,19 @@ Panel* createPanel(int width, int height, int x, int y, int z){
     return newPanel;
 }
 
-void destroyPanel(Panel* panel){
+void destroyPanel(Panel* panel, bool ownsChildren){
+	/* Free background buffer */
+	free(panel->backgroundBuffer);
+
+	/* Free event listeners (see add listener function for details on what memory we own and need to free) */
+	EventListener* current = panel->listeners;
+	while (current != NULL) {
+		EventListener* next = current->next;
+		free(current);
+		current = next;
+	}
+
+	/* Free panel */
     free(panel);
 }
 
@@ -143,6 +155,12 @@ void defaultDrawPanel(Object* self, CursesChar* buffer){
 }
 
 void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, Event* event), Object* listener){
+	/* NOTE: We own the memory on the heap for the event listeners list, since we call malloc here. However during the game
+	 * the event listener list is swapped in and out to change state. When that happens, whoever switches the list implicitly
+	 * takes ownership of the memory for the old list, and gives us control of the memory for the new list. I.E. we always clean
+	 * up the list we have, but any other part of the code which switches out lists will need to free the memory for the lists
+	 * that are not in use when destroyPanel is called.
+	 */
     *self->nextListener = (EventListener*) malloc(sizeof(EventListener));
     (*self->nextListener)->mask = mask;
     (*self->nextListener)->handleEvent = handleEvent;

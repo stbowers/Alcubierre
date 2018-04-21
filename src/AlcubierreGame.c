@@ -45,6 +45,18 @@ void startGame(Engine* engine){
     engine->mainPanel->listeners = gameState.titleScreenListenerList;
 }
 
+void cleanUpGame() {
+	/* Clean up resources we own (gameObjects and any eventlistener lists that are not in use)
+	 */
+
+	/* GameObjects - mainPanel never owns any objects, not even it's children, so we clean up all of our objects */
+	destroyPanel(gameState.titleScreen);
+	destroyPanel(gameState.overviewScreen);
+	// NOTE: we're not freeing the memory for any children of the above screens, even though we should. This should be fixed later somehow.
+
+	/* Free */
+}
+
 void initializeWorldState(){
     /* All locations start off as unknown, except 0 which we're at */
     gameState.locations[0] = LOCATION_CURRENT;

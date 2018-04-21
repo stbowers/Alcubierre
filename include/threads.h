@@ -57,6 +57,7 @@ typedef SYNCHRONIZATION_BARRIER ThreadBarrier_t;
  * enterThreadBarrier(ThreadBarrier_t* barrier)
  * 
  * exitThread(int returnCode)
+ * joinThread(Thread_t* handle)
  */
 
 #ifdef __UNIX__
@@ -100,6 +101,10 @@ typedef SYNCHRONIZATION_BARRIER ThreadBarrier_t;
 // Exit the current thread with the given code
 #define exitThread(code)\
     ExitThread(code)
+
+// Wait for the given thread to end
+#define joinThread(handle)\
+	WaitForSingleObject(*handle, INFINITE)
 #endif
 
 #endif //__THREADS_H__

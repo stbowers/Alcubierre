@@ -35,6 +35,8 @@ extern AlcubierreGameState gameState;
 extern ThreadLock_t gameStateMutex;
 
 void startGame(Engine* engine);
+// Should be called before destroyEngine to clean up any resources we own.
+void cleanUpGame();
 
 void playCallback();
 void infoCallback();
