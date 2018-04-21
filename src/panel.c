@@ -65,7 +65,7 @@ Panel* createPanel(int width, int height, int x, int y, int z){
     return newPanel;
 }
 
-void destroyPanel(Panel* panel, bool ownsChildren){
+void destroyPanel(Panel* panel){
 	/* Free background buffer */
 	free(panel->backgroundBuffer);
 

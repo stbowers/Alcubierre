@@ -21,7 +21,7 @@
 
 #define MS_PER_TICK 10 // how many milliseconds corrospond to one tick - tickrate (10ms/tick ~= 100 ticks per second)
 // There is a weird bug with the render thread timer where it runs at exactly half the framerate expected from MS_PER_FRAME - so the value below should be halved
-#define MS_PER_FRAME 5 // how many milliseconds corrospond to one frame - framerate
+#define MS_PER_FRAME 10 // how many milliseconds corrospond to one frame - framerate
 
 /* Engine functions */
 void defaultEngineHandleEvent(Engine* self, Event* event);
@@ -403,13 +403,15 @@ int renderThreadFunction(void* data){
         // increment render count
         engine->renderThreadData.framesRendered++;
 
-        // every 1000 frames update the fps
-        if (!(engine->renderThreadData.framesRendered % 1000)){
+        // every 50 frames update the fps
+        if (!(engine->renderThreadData.framesRendered % 50)){
             uint64_t msPassed = getTimems() - lastUpdate;
             lastUpdate = getTimems();
 
             // calculate fps
-            engine->renderThreadData.fps_calculated = (1000.0f*1000.0f) / (float)(msPassed);
+            // 50 frames   | 1000 ms |  = (50 * 1000) / msPassed fps
+            // msPassed ms |   1 s   |
+            engine->renderThreadData.fps_calculated = (50.0f*1000.0f) / (float)(msPassed);
         }
 
         /* Check if we should exit */
@@ -449,7 +451,15 @@ int drawingThreadFunction(void* data){
         for (int y = 0; y < engine->stdscrHeight; y++){
             for (int x = 0; x < engine->stdscrWidth; x++){
                 CursesChar* currentChar = &(*engine->renderThreadData.drawingBuffer)[(engine->stdscrHeight * x) + y];
+                #ifdef __WIN32__
                 waddch(engine->stdscr, currentChar->character | currentChar->attributes);
+                #elif __UNIX__
+                cchar_t ncursesChar;
+                ncursesChar.attr = currentChar->attributes;
+                ncursesChar.chars[0] = currentChar->character;
+                ncursesChar.chars[1] = 0;
+                wadd_wch(engine->stdscr, &ncursesChar);
+                #endif
             }
         }
 

@@ -12,7 +12,9 @@
 
 int main(){
 	/* Block for attaching debugger or resizing window before running code */
+    #ifndef __LINUX__
 	getchar();
+    #endif
 
     /* Set locale for proper ncurses use */
     setlocale(LC_CTYPE, "");

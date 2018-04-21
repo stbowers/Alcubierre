@@ -30,7 +30,7 @@
 typedef pthread_t Thread_t;
 typedef void* (*ThreadProcess_t)(void*);
 typedef pthread_mutex_t ThreadLock_t;
-typedef pthread_cond_t ThreadCondition_t
+typedef pthread_cond_t ThreadCondition_t;
 typedef pthread_barrier_t ThreadBarrier_t;
 #elif __WIN32__
 typedef HANDLE Thread_t;
@@ -62,7 +62,45 @@ typedef SYNCHRONIZATION_BARRIER ThreadBarrier_t;
 
 #ifdef __UNIX__
 #define createThread(handle, function, data)\
-    pthread_create(handle, &threadAttributes, function, data)
+    pthread_create(handle, NULL, function, data)
+
+#define createLock(handle)\
+    pthread_mutex_init(handle, NULL)
+
+#define createConditionVariable(condition)\
+    pthread_cond_init(condition, NULL)
+
+#define createBarrier(barrier, numThreads)\
+    pthread_barrier_init(barrier, NULL, numThreads)
+
+/* Thread lock macros */
+#define lockThreadLock(lock)\
+    pthread_mutex_lock(lock)
+
+#define unlockThreadLock(lock)\
+    pthread_mutex_unlock(lock)
+
+/* Condition variable macros */
+#define waitForConditionSignal(condition, lock)\
+    pthread_cond_wait(condition, lock)
+
+#define sendConditionSignal(condition)\
+    pthread_cond_signal(condition)
+
+#define broadcastConditionSignal(condition)\
+    pthread_cond_broadcast(condition)
+
+/* Barrier macros */
+#define enterThreadBarrier(barrier)\
+    pthread_barrier_wait(barrier)
+
+// Exit current thread
+#define exitThread(code)\
+    pthread_exit(code)
+
+// Join thread
+#define joinThread(handle)\
+    pthread_join(*handle, NULL)
 #elif __WIN32__
 #define createThread(handle, function, data)\
     *handle=CreateThread(NULL, 0, function, data, 0, NULL)
