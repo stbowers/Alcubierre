@@ -297,8 +297,12 @@ void writecharToBuffer(CursesChar* buffer, int x, int y, CursesChar* ch);
  *  each line should be (doesn't need to be the width of the buffer), 
  *  and height is the height of the buffer (does need to be the actual height
  *  for proper formatting)
+ * NOTE: height is used for calculating offsets into buffer, and so should be 
+ *  the height buffer was allocated at. maxHeight limits how much this function
+ *  will print, and is the number of lines it will print
+ * returns: lines written
  */
-void bufferPrintf(CursesChar* buffer, int width, int height, int x, int y, unsigned int attr, const char* format, ...);
+int bufferPrintf(CursesChar* buffer, int width, int height, int maxHeight, int x, int y, unsigned int attr, const char* format, ...);
 
 /* Returns a timestamp in milliseconds, from an undefined
  * starting time. (Monotonic clock)

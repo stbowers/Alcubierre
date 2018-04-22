@@ -6,6 +6,7 @@
  * Licensed under the MIT License (see LICENSE.txt)
  */
 #include <AlcubierreGame.h>
+#include <game/OverviewScreen.h>
 #include <objects/sprites.h>
 #include <objects/ui.h>
 #include <stdlib.h>
@@ -19,7 +20,21 @@
 AlcubierreGameState gameState;
 ThreadLock_t gameStateLock;
 
-void startGame(Engine* engine){
+/* Introduction text, plays during the intro sequence. Scrolls up line by line, hence it being stored in lines here.
+ */
+const char* introText =
+	"-----ENCRYPTED COMMUNICATION FROM INTERPLANETARY RESISTANCE-----\n"
+    "Good evening, Recruit.\n\n"
+    "You have been promoted to Commander of the IRSS Alcubierre, our most advanced scout ship.\n\n"
+    "Your mission is to scout several sectors on the way to the outer edge of the solar system, laying down opportunities for the rest of our fleet to take a hold in those sectors.\n\n"
+    "Your ship has been equipped with a new device which disrupts the enemy's shields. This will allow you to quickly deal large amounts of damage to critical systems, giving you the upper hand in battle.\n\n"
+    "Do not become too reckless, however. The Alcubierre is our only ship outfitted with this shield weakening device. It will play a critical role in our final battle to take out the enemy’s stargate at the edge of the Solar System.\n\n"
+    "You're survival is critical to the Interplanetary Resistance's plans to take back our home.\n\n"
+    "Don't let us down, Commander.\n\n"
+    "-----END OF ENCRYPTED MESSAGE-----\n"
+    "Press any key to continue...";
+
+void startGame(Engine* engine, bool skipIntro){
     /* Initialize gameState mutex and lock it */
     createLock(&gameStateLock);
     lockThreadLock(&gameStateLock);
@@ -29,6 +44,7 @@ void startGame(Engine* engine){
     
     /* Initialize basic gameState info */
     gameState.exit = false;
+    gameState.currentSector = 0;
 
     /* Run a loading animation while setting up the game */
     XPFile* loadingAnimationFrames[4] = {getXPFile("./assets/Loading1.xp"), getXPFile("./assets/Loading2.xp"), getXPFile("./assets/Loading3.xp"), getXPFile("./assets/Loading4.xp")};
@@ -44,7 +60,9 @@ void startGame(Engine* engine){
     buildOverviewScreen();
 
     /* Run the intro sequence */
-    runIntroSequence();
+    if (!skipIntro){
+        runIntroSequence();
+    }
     
 	/* Unlock game state lock */
 	unlockThreadLock(&gameStateLock);
@@ -82,7 +100,6 @@ void initializeWorldState(){
 }
 
 void runIntroSequence(){
-    sleepms(5000); // simulate loading the game
     /* Run static for 2 seconds (animated xp sprite) */
     XPFile* staticFrames[3] = {getXPFile("./assets/Static1.xp"), getXPFile("./assets/Static2.xp"), getXPFile("./assets/Static3.xp")};
     GameObject* staticAnimation = createAXPSprite(staticFrames, 3, 10, 0, 0, 1, gameState.engine);
@@ -95,19 +112,65 @@ void runIntroSequence(){
 
     /* Replace static animation with static hacked animation, run for 2 seconds */
     XPFile* hackFrames[4] = {getXPFile("./assets/Static_Hack1.xp"), getXPFile("./assets/Static_Hack2.xp"), getXPFile("./assets/Static_Hack3.xp"), getXPFile("./assets/Static_Hack4.xp")};
-    GameObject* hackAnimation = createAXPSprite(hackFrames, 4, 10, 0, 0, 1, gameState.engine);
+    GameObject* hackAnimation = createAXPSprite(hackFrames, 4, 100, 0, 0, 1, gameState.engine);
 
     lockThreadLock(&gameState.engine->renderThreadData.renderLock);
     gameState.engine->mainPanel->childrenList = (Object*) hackAnimation;
     unlockThreadLock(&gameState.engine->renderThreadData.renderLock);
 
-    /* Text crawl (move an xp sprite with text up the screen) */
-    sleepms(5000);
+    sleepms(2000);
+
+	/* Freeze hack animation by setting numFrames to 1 */
+	((AXPSpriteData*)hackAnimation->userData)->numFrames = 1;
+
+    /* Text crawl */
+    // write our text to the texture buffer of the first frame of the hack animation
+	CursesChar* buffer = ((AXPSpriteData*)hackAnimation->userData)->textureData->frames[0];
+    int bufferWidth = ((AXPSpriteData*)hackAnimation->userData)->textureData->width;
+    int bufferHeight = ((AXPSpriteData*)hackAnimation->userData)->textureData->height;
+    int startX = 10; // the text portion is inset into the texture, so we don't want to start at 0,0
+    int startY = 5;
+    int textHeight = 61;
+    int textWidth = 236;
+
+    // get colors for text
+    //lockThreadLock(&gameState.engine->renderThreadData.drawLock);
+    int bg = getBestColor(0, 0, 0, gameState.engine);
+    int fg = getBestColor(0, 217, 0, gameState.engine);
+    int colorPair = getColorPair(fg, bg, gameState.engine);
+    //unlockThreadLock(&gameState.engine->renderThreadData.drawLock);
+
+    // loop up how many lines of text we're drawing at a time
+    for (int lines = 1; lines <= textHeight; lines++){
+        // get the y value we need to start drawing at to print lines to the end of textHeight
+        int y = startY + (textHeight - lines);
+        
+        // blank out the lines from y to startY + textHeight
+        for (int yPos = y; yPos < startY + textHeight; yPos++){
+            for (int x = startX; x < startX + textWidth; x++){
+                CursesChar* charAt = &buffer[(x * bufferHeight) + yPos];
+                charAt->attributes = 0;
+                charAt->character = ' ';
+            }
+        }
+        
+        // and draw the text
+        int linesDrawn = bufferPrintf(buffer, textWidth, bufferHeight, lines, startX, y, COLOR_PAIR(colorPair), "%s", introText);
+        if (linesDrawn == lines){
+            // Still printing more, slower print speed
+            sleepms(200);
+        } else {
+            sleepms(50);
+        }
+    }
+
+    getch();
 }
 
 void buildTitleScreen(){
-    /* Remove listeners from the main panel, so only our listeners remain when we're done */
+    /* Remove listeners and reset new listener pointer */
     gameState.engine->mainPanel->listeners = NULL;
+    gameState.engine->mainPanel->nextListener = &gameState.engine->mainPanel->listeners;
 
     /* Build the title screen panel */
     gameState.titleScreen = createPanel(gameState.engine->width, gameState.engine->height, 0, 0, 0);
@@ -122,73 +185,17 @@ void buildTitleScreen(){
     char* items[] = {"(P)lay", "(I)nstructions", "(B)ackstory", "(E)xit"};
     char keys[] = {'p', 'i', 'b', 'e'};
     pfn_SelectionCallback callbacks[] = {playCallback, infoCallback, backstoryCallback, exitCallback};
-    GameObject* menu = createSelectionWindow(items, keys, callbacks, 4, 0, 0, 1, gameState.engine);
+    GameObject* menu = createSelectionWindow(items, keys, true, true, callbacks, true, 4, 20, 0, 0, 1, gameState.engine);
     allignObjectX((Object*)menu, gameState.titleScreen, ((SelectionWindowData*)menu->userData)->width, .5);
     allignObjectY((Object*)menu, gameState.titleScreen, ((SelectionWindowData*)menu->userData)->height, .75);
     gameState.titleScreen->addObject(gameState.titleScreen, (Object*)menu);
 
     /* Save listener list */
     gameState.titleScreenListenerList = gameState.engine->mainPanel->listeners;
-}
 
-void buildOverviewScreen(){
-    /* Remove listeners */
+    /* Remove listeners and reset new listener pointer */
     gameState.engine->mainPanel->listeners = NULL;
-
-    /* Create overview screen panel */
-    gameState.overviewScreen = createPanel(gameState.engine->width, gameState.engine->height, 0, 0, 0);
-
-    /* Load basic overview texture */
-    XPFile* overviewTexture = getXPFile("./assets/Overview.xp");
-
-    /* Create sprite for background */
-    GameObject* backgroundSprite = createXPSprite(overviewTexture, 0, 0, 0, gameState.engine);
-    centerObject((Object*)backgroundSprite, gameState.overviewScreen, overviewTexture->layers[0].width, overviewTexture->layers[0].height);
-    gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)backgroundSprite);
-
-    /* Add location markers to overview screen */
-    XPFile* locationUnknown = getXPFile("./assets/Location_Unknown.xp");
-    XPFile* locationCurrentFrames[2] = {getXPFile("./assets/Location_Current1.xp"), getXPFile("./assets/Location_Current2.xp")};
-    XPFile* locationCompleted = getXPFile("./assets/Location_Completed.xp");
-    XPFile* locationSkipped = getXPFile("./assets/Location_Skipped.xp");
-
-    // Get height and y location for each marker (same for all of them)
-    int markerHeight = locationUnknown->layers[0].height;
-    int markerY = (float)(gameState.overviewScreen->height - markerHeight) * (5.0f/8.0f);
-    
-    // The starting value of markerX, which will change to keep track of each new marker
-    // This is kinda a magic variable, tweaked until it looks right
-    int markerX = backgroundSprite->objectProperties.x + 8;
-
-    for (int i = 0; i < 9; i++){
-        GameObject* marker;
-        switch (gameState.locations[i]){
-        case LOCATION_UNKNOWN:
-            marker = createXPSprite(locationUnknown, markerX, markerY, 1, gameState.engine);
-            break;
-        case LOCATION_CURRENT:
-            marker = createAXPSprite(locationCurrentFrames, 2, 500, markerX, markerY, 1, gameState.engine);
-            break;
-        case LOCATION_COMPLETED:
-            marker = createXPSprite(locationCompleted, markerX, markerY, 1, gameState.engine);
-            break;
-        case LOCATION_SKIPPED:
-            marker = createXPSprite(locationSkipped, markerX, markerY, 1, gameState.engine);
-            break;
-        default:
-            marker = createXPSprite(locationUnknown, markerX, markerY, 1, gameState.engine);
-            break;
-        }
-        gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)marker);
-        markerX += ((i+1)%3)?12:18;
-    }
-
-    /* Save listener list */
-    gameState.overviewScreenListenerList = gameState.engine->mainPanel->listeners;
-}
-
-void updateOverviewScreen(){
-    
+    gameState.engine->mainPanel->nextListener = &gameState.engine->mainPanel->listeners;
 }
 
 Panel* infoPanel = NULL;

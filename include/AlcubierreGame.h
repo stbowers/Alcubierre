@@ -17,6 +17,7 @@ typedef struct AlcubierreGameState_s{
     // used to send a signal to the main thread that the game should exit now
     bool exit;
 
+    /* Screens */
     Panel* titleScreen;
     Panel* overviewScreen;
 
@@ -33,11 +34,12 @@ typedef struct AlcubierreGameState_s{
         LOCATION_COMPLETED,
         LOCATION_SKIPPED,
     } locations[9];
+    int currentSector;
 } AlcubierreGameState;
 extern AlcubierreGameState gameState;
 extern ThreadLock_t gameStateLock;
 
-void startGame(Engine* engine);
+void startGame(Engine* engine, bool skipIntro);
 // Should be called before destroyEngine to clean up any resources we own.
 void cleanUpGame();
 
@@ -49,9 +51,5 @@ void exitCallback();
 void initializeWorldState();
 void runIntroSequence();
 void buildTitleScreen();
-void buildOverviewScreen();
-
-void updateTitleScreen();
-void updateOverviewScreen();
 
 #endif //__ALCUBIERREGAME_H__

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <locale.h>
 #include <AlcubierreGame.h>
+#include <string.h>
 
 /* The regular getch function is not thread safe, so this
  * function makes sure the proper locks are heald by this
@@ -16,7 +17,7 @@
  */
 int getch_safe(Engine* engine);
 
-int main(){
+int main(int argc, char* argv[]){
 	/* Block for attaching debugger or resizing window before running code */
     #ifndef __LINUX__
 	getchar();
@@ -52,8 +53,13 @@ int main(){
     unlockThreadLock(&engine->renderThreadData.dataLock);
 
     /* Run the game */
+    // if the program is run with --skipintro, skip the intro sequence (speeds up debugging the actual game)
+    bool skipIntro = false;
+    if (argc > 1 && (strncmp(argv[1], "--skipintro", 11) == 0)){
+        skipIntro = true;
+    }
     // call to startGame in AlcubierreGame.c
-    startGame(engine);
+    startGame(engine, skipIntro);
     
     /* Main thread is done - now loop getting keyboard input and sending
      * keyboard events to the engine. If F1 is pressed, quit
@@ -72,7 +78,7 @@ int main(){
             Event* keyEvent = (Event*)malloc(sizeof(Event));
             keyEvent->eventType.mask = 0;
             keyEvent->eventType.values.keyboardEvent = TRUE;
-            keyEvent->eventData = &input;
+            keyEvent->eventData = (void*)(uintptr_t)input; // we don't want to send a pointer in this case - just the char data which will fit into the size of a void pointer
 			keyEvent->next = NULL;
 
             // send events

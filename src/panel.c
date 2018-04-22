@@ -57,7 +57,7 @@ Panel* createPanel(int width, int height, int x, int y, int z){
             CursesChar* currentChar = &newPanel->backgroundBuffer[(newPanel->height * x) + y];
             currentChar->attributes = 0;
             // clear char array
-			currentChar->character = L'-';//L'\u00A0';
+			currentChar->character = L'\u00A0';
         }
     }
 

@@ -29,7 +29,11 @@
  * [] and colored with the normal text coloring
  */
 
-typedef void(*pfn_SelectionCallback)();
+/* the callback function is passed the index of the selection it was called
+ * for, so that the same function can be used for multiple selecitons which
+ * are of the same category, but might have different properties.
+ */
+typedef void(*pfn_SelectionCallback)(int index);
 
 typedef struct SelectionWindowData_s{
     CursesChar* buffer;
@@ -38,11 +42,17 @@ typedef struct SelectionWindowData_s{
     pfn_SelectionCallback* callbacks;
     int width, height;
     int numOptions;
+    bool bordered;
+    bool arrowSelection;
+    int currentSelection; // only used with arrowSelection
 } SelectionWindowData;
 
-GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback* callbacks, int numOptions, int xpos, int ypos, int z, Engine* engine);
+// Bordered: should we draw a border around the options (also makes the panel opaque in blank spaces)
+// arrowSelection: should we allow the arrow keys to select options (change highlighting), and call callback when enter is pressed
+GameObject* createSelectionWindow(char** list, char* keys, bool bordered, bool arrowSelection, pfn_SelectionCallback* callbacks, bool registerForEvents, int numOptions, int minWidth, int xpos, int ypos, int z, Engine* engine);
 void destroySelectionWindow(GameObject* selectionWindow);
 
-/* */
+// call if updating any data from the outside
+void drawSelectionWindowBuffer(GameObject* selectionWindow);
 
 #endif //__UI_H_

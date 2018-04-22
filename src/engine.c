@@ -85,7 +85,7 @@ Engine* initializeEngine(int width, int height){
             CursesChar* currentChar = &newEngine->backgroundBuffer[(newEngine->stdscrHeight * x) + y];
             currentChar->attributes = 0;
             // clear char array
-            currentChar->character = L'*';
+            currentChar->character = L' ';
         }
     }
 
@@ -236,7 +236,7 @@ void writecharToBuffer(CursesChar* buffer, int x, int y, CursesChar* ch){
 }
 
 // printf to buffer
-void bufferPrintf(CursesChar* buffer, int width, int height, int x, int y, unsigned int attr, const char* format, ...){
+int bufferPrintf(CursesChar* buffer, int width, int height, int maxHeight, int x, int y, unsigned int attr, const char* format, ...){
     /* Get variadic args */
     va_list args;
     va_start(args, format);
@@ -250,10 +250,10 @@ void bufferPrintf(CursesChar* buffer, int width, int height, int x, int y, unsig
     int deltaX = 0;
     int deltaY = 0;
     for (int i = 0; i <= width*height; i++){
-        if (!str[i]){
-            // if we've reached a null byte we're done
+        if (!str[i] || (deltaY >= maxHeight)){
+            // if we've reached a null byte or printed maxHeight lines we're done
             free(str);
-            return;
+            return deltaY;
         } else if (str[i] == '\n') {
             // move to next line
             deltaX = 0;
@@ -271,6 +271,8 @@ void bufferPrintf(CursesChar* buffer, int width, int height, int x, int y, unsig
             }
         }
     }
+
+	return deltaY;
 }
 
 /* Gets a timestamp in milliseconds, from a monotonic clock.

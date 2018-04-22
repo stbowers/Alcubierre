@@ -16,9 +16,12 @@
 void drawSelectionWindow(Object* self, CursesChar* buffer);
 void selectionWindowHandleEvents(Object* self, Event* event);
 
+/* Helper function for drawing the buffer */
+void drawSelectionWindowBuffer(GameObject* selectionWindow);
+
 /* ui.h implementation */
 
-GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback* callbacks, int numOptions, int xpos, int ypos, int z, Engine* engine){
+GameObject* createSelectionWindow(char** list, char* keys, bool bordered, bool arrowSelection, pfn_SelectionCallback* callbacks, bool registerForEvents, int numOptions, int minWidth, int xpos, int ypos, int z, Engine* engine){
     /* Create new game object */
     GameObject* newObject = (GameObject*) malloc(sizeof(GameObject));
     newObject->timeCreated = getTimems();
@@ -39,15 +42,30 @@ GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback
     SelectionWindowData* data = (SelectionWindowData*) malloc(sizeof(SelectionWindowData));
     newObject->userData = data;
     
+    data->numOptions = numOptions;
+    data->bordered = bordered;
+    data->arrowSelection = arrowSelection;
+    data->currentSelection = 0;
+
+    /* Set width & height */
     data->height = numOptions;
-    data->width = 0;
+    data->width = minWidth;
     for (int i = 0; i < numOptions; i++){
         if (strlen(list[i]) > data->width){
             data->width = strlen(list[i]);
         }
     }
 
-    data->numOptions = numOptions;
+    /* add to width & height if we need a border or selection arrows */
+    if (bordered){
+        data->width += 2;
+        data->height += 2;
+    }
+    
+    if (arrowSelection){
+        data->width += 2;
+    }
+
     
     // Since we're passed pointers that we don't control the memory of, we need to allocate new space on the heap and copy the data over
     data->list = (char**) malloc(sizeof(char*) * numOptions);
@@ -60,25 +78,27 @@ GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback
     /* Set up buffer */
     data->buffer = (CursesChar*) malloc(sizeof(CursesChar) * data->width * data->height);
     
-    /* default char is transparent */
+    // fill buffer with default chars
     for (int x = 0; x < data->width; x++){
         for (int y = 0; y < data->height; y++){
             CursesChar* currentChar = &data->buffer[(data->height * x) + y];
             currentChar->attributes = 0;
             // clear char array
-            currentChar->character = L'\u00A0';
+            // if bordered, fill with spaces, else fill with transparent NBSP char
+            currentChar->character = (bordered)?L' ':L'\u00A0';
         }
     }
 
-    for (int i = 0; i < numOptions; i++){
-        bufferPrintf(data->buffer, data->width, data->height, 0, i, 0, "%s", list[i]);
-    }
+    /* draw buffer */
+    drawSelectionWindowBuffer(newObject);
 
     /* Register to receive events */
-    EventTypeMask typeMask;
-    typeMask.mask = 0; // initialize mask - set all feilds to 0
-    typeMask.values.keyboardEvent = 1; // we're interested in keyboard events
-    engine->mainPanel->registerEventListener(engine->mainPanel, typeMask, selectionWindowHandleEvents, (Object*)newObject);
+    if (registerForEvents){
+        EventTypeMask typeMask;
+        typeMask.mask = 0; // initialize mask - set all feilds to 0
+        typeMask.values.keyboardEvent = true; // we're interested in keyboard events
+        engine->mainPanel->registerEventListener(engine->mainPanel, typeMask, selectionWindowHandleEvents, (Object*)newObject);
+    }
 
     return newObject;
 }
@@ -94,6 +114,80 @@ void destroySelectionWindow(GameObject* selectionWindow){
     // free data
     free(data);
     free(selectionWindow);
+}
+
+/* Draw buffer */
+void drawSelectionWindowBuffer(GameObject* selectionWindow){
+    SelectionWindowData* data = (SelectionWindowData*)selectionWindow->userData;
+    /* Print border to buffer if needed */
+    if (data->bordered){
+        // print top and bottom
+        for (int x = 1; x < (data->width-1); x++){
+            CursesChar* topChar = &data->buffer[(x * data->height) + 0];
+            CursesChar* bottomChar = &data->buffer[(x * data->height) + data->height - 1];
+            topChar->character = bottomChar->character = L'─'; // set char to horizontal line
+        }
+
+        // print corners
+        CursesChar* topLeft = &data->buffer[(0 * data->height) + 0];
+        CursesChar* topRight = &data->buffer[((data->width-1) * data->height) + 0];
+        CursesChar* bottomLeft = &data->buffer[(0 * data->height) + (data->height-1)];
+        CursesChar* bottomRight = &data->buffer[((data->width-1) * data->height) + (data->height-1)];
+
+        topLeft->character = L'┌';
+        topRight->character = L'┐';
+        bottomLeft->character = L'└';
+        bottomRight->character = L'┘';
+    
+        // sides are printed with options
+    }
+
+    /* Print options to buffer */
+    for (int i = 0; i < data->numOptions; i++){
+        /* Get x,y position to print string at */
+        int x = 0;
+        int y = i;
+        if (data->bordered){
+            x += 1;
+            y += 1;
+        }
+        if (data->arrowSelection){
+            x += 1;
+        }
+
+        /* Pre-option (border and/or selection arrows) */
+        if (data->bordered){
+            CursesChar* borderChar = &data->buffer[ (0 * data->height) + y];
+            borderChar->character = L'│';
+        }
+        if (data->arrowSelection){
+            CursesChar* arrowChar = &data->buffer[ (1 * data->height) + y];
+            if (i==data->currentSelection){
+                arrowChar->character = L'♦';
+            } else {
+                arrowChar->character = L' ';
+            }
+        }
+
+        /* Print option */
+        bufferPrintf(data->buffer, data->width, data->height, data->height, x, y, 0, "%s", data->list[i]);
+        
+        /* Post-option (border and/or selection arrows) */
+        if (data->bordered){
+            CursesChar* borderChar = &data->buffer[ ((data->width-1) * data->height) + y];
+            borderChar->character = L'│';
+        }
+        if (data->arrowSelection){
+            CursesChar* arrowChar = &data->buffer[ ((data->width-2) * data->height) + y];
+            // default selection is the first one
+            if (i==data->currentSelection){
+                arrowChar->character = L'♦';
+            } else {
+                arrowChar->character = L' ';
+            }
+        }
+    }
+
 }
 
 /* SelectionWindow function implementations */
@@ -115,10 +209,44 @@ void drawSelectionWindow(Object* self, CursesChar* buffer){
 void selectionWindowHandleEvents(Object* self, Event* event){
     SelectionWindowData* data = (SelectionWindowData*)((GameObject*)self)->userData;
     // we assume event is a key event here, so data is the char
-    char ch = *(char*)event->eventData;
+    int ch = (int)event->eventData;
+
+    // if ch is up, down, or enter with arrowSelections
+    if (data->arrowSelection){
+        switch (ch){
+            case KEY_UP:
+                // move selection up if current selection is not zero
+                if (data->currentSelection > 0){
+                    data->currentSelection--;
+                }
+
+                // update buffer
+                drawSelectionWindowBuffer((GameObject*)self);
+                break;
+            case KEY_DOWN:
+                // move selection down if current selection is not the last option
+                if (data->currentSelection < (data->numOptions - 1)){
+                    data->currentSelection++;
+                }
+
+                // update buffer
+                drawSelectionWindowBuffer((GameObject*)self);
+                break;
+            case KEY_ENTER:
+            case 10:
+                // call callback for the curent selection
+                data->callbacks[data->currentSelection](data->currentSelection);
+                break;
+            default:
+                // do nothing
+                break;
+        }
+    }
+
+    // check keys for ch
     for (int i = 0; i < data->numOptions; i++){
         if (ch == data->keys[i]){
-            data->callbacks[i]();
+            data->callbacks[i](i);
         }
     }
 }

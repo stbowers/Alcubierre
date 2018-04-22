@@ -7,7 +7,7 @@
  */
 /* Definitions for sprite objects */
 #ifndef __SPRITE_H__
-#define __SPRITE_H_
+#define __SPRITE_H__
 
 #include <engine.h>
 #include <xpFunctions.h>
