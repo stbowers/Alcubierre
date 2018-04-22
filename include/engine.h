@@ -260,6 +260,19 @@ void destroyEngine(Engine* engine);
 Panel* createPanel(int width, int height, int x, int y, int z);
 void destroyPanel(Panel* panel);
 
+/* Changes an object's x and y coordinates to be centered in the
+ * given panel
+ */
+void centerObject(Object* toCenter, Panel* parent, int objectWidth, int objectHeight);
+
+/* Allign the given object to be position % along either the horizontal (X) or
+ * veritcal (Y) directions inside a given panel. Lines up the object's center
+ * to the given position. (Ex, passing .5 to both functions will allign the object
+ * to the center of the panel, wich is what centerObject() does)
+ */
+void allignObjectX(Object* toAllign, Panel* parent, int objectWidth, float position);
+void allignObjectY(Object* toAllign, Panel* parent, int objectHeight, float position);
+
 /* Gets the absolute position (relative to stdscr) of a given coordinate
  * relative to a given object
  */
@@ -295,5 +308,10 @@ uint64_t getTimems();
 /* Sleeps for a given number of milliseconds
  */
 void sleepms(int msec);
+
+/* Get colors and color pairs
+ */
+int getBestColor(int r, int g, int b, Engine* engine);
+int getColorPair(int fg, int bg, Engine* engine);
 
 #endif //__ENGINE_H_

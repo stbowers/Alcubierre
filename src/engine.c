@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <math.h>
 
 #define MS_PER_TICK 10 // how many milliseconds corrospond to one tick - tickrate (10ms/tick ~= 100 ticks per second)
 // There is a weird bug with the render thread timer where it runs at exactly half the framerate expected from MS_PER_FRAME - so the value below should be halved
@@ -49,6 +50,9 @@ Engine* initializeEngine(int width, int height){
     keypad(stdscr, TRUE);
     curs_set(0);
     start_color();
+
+    /* Initialize rng */
+    srand(time(NULL));
 
     // Check the size of the terminal window is large enough for a widthxheight window with 1 wide border
     if (!((COLS > (width + 2)) && (LINES > (height + 2)))){
@@ -174,6 +178,26 @@ void destroyEngine(Engine* engine){
     endwin();
 }
 
+// center object in panel
+void centerObject(Object* toCenter, Panel* parent, int objectWidth, int objectHeight){
+    allignObjectX(toCenter, parent, objectWidth, .5);
+    allignObjectY(toCenter, parent, objectHeight, .5);
+}
+
+// center an object horizontally
+void allignObjectX(Object* toAllign, Panel* parent, int objectWidth, float position){
+    int newX = ((float)(parent->width - objectWidth) * position);
+
+    toAllign->x = newX;
+}
+
+// center an object vertically
+void allignObjectY(Object* toAllign, Panel* parent, int objectHeight, float position){
+    int newY = ((float)(parent->height - objectHeight) * position);
+
+    toAllign->y = newY;
+}
+
 // Used by moveRelativeTo to get the absolute coordinates
 void getAbsolutePosition(Object* parent, int relX, int relY, int* absX, int* absY){
     /* add relX and relY to the given object's x and y */
@@ -275,6 +299,88 @@ void sleepms(int msec){
 		/* Windows sleep */
 		Sleep(msec);
 	#endif
+}
+
+/* Color helper functions */
+/* Searches through the available terminal colors for the one that is closest
+ * to the given rgb value (by euclidian distance), or if the terminal supports
+ * changing colors start changing colors past 16 (standard colors)
+ */
+int nextColor = 16;
+int getBestColor(int r, int g, int b, Engine* engine){
+    int bestColor = 0;
+    float bestr2 = 2e6; // max distance in color space is ~1.96e5, so all colors should be closer than this initial value
+    
+    // number of colors to search through (full range if can't change colors, else only the colors that have been set)
+    int numColors = (can_change_color())?nextColor:COLORS;
+
+    /* Loop through avaliable terminal colors */
+    for (int color = 0; color < numColors; color++){
+        /* Get rgb value of terminal color */
+        short tr, tg, tb;
+        color_content(color, &tr, &tg, &tb);
+
+        /* Normalize terminal color */
+        /* color_content returns values between 0 and 1000,
+         * so normalize them to be between 0 and 255
+         */
+        tr = tr / (3.9f);
+        tg = tg / (3.9f);
+        tb = tb / (3.9f);
+
+        /* Get the square of the euclidian distance
+         * r^2 = (x^2 + y^2 + z^2) 
+         */
+
+        float r2 = pow((tr -r), 2) + pow((tg - g), 2) + pow((tb - b), 2);
+
+        /* Compare to bestr2 */
+        if (r2 < bestr2){
+            bestColor = color;
+            bestr2 = r2;
+        }
+    }
+    
+    if (bestr2 < 150 || !can_change_color()){
+        // if we found a close enough match, or can't change colors return that
+        return bestColor;
+    }
+
+    // else change the next color and return that
+    // We need to have the drawing mutex before calling init_color, because init_color sends control characters to the terminal
+    lockThreadLock(&engine->renderThreadData.drawLock);
+    init_color(nextColor, r*3.9, g*3.9, b*3.9);
+    unlockThreadLock(&engine->renderThreadData.drawLock);
+    nextColor++;
+    return nextColor - 1;
+}
+
+/* Search for an existing color pair with the given colors, and if
+ * one isn't found make a new one at nextColorPair
+ */
+int nextColorPair = 1;
+int getColorPair(int fg, int bg, Engine* engine){
+    for (int pair = 0; pair < nextColorPair; pair++){
+        /* Get colors in pair */
+        short pfg, pbg;
+        pair_content(pair, &pfg, &pbg);
+
+        /* If they match, return */
+        if (pfg == fg && pbg == bg){
+            return pair;
+        }
+    }
+
+    /* If we leave loop, no matching pair was found.
+     * Create a new one at nextColorPair and increment
+     * nextColorPair
+     */
+    // We need the drawing mutex to use init_pair, since it sends control characters to the terminal
+    lockThreadLock(&engine->renderThreadData.drawLock);
+    init_pair(nextColorPair, fg, bg);
+    unlockThreadLock(&engine->renderThreadData.drawLock);
+    nextColorPair++;
+    return nextColorPair - 1;
 }
 
 /* Engine functions */

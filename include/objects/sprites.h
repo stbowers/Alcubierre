@@ -36,17 +36,17 @@ void destroyXPSprite(GameObject* sprite);
 /* AXP Sprite - animated sprite */
 
 typedef struct AXPSpriteTextureData_s{
-    int width, height, currentFrame;
+    int width, height;
     CursesChar** frames; // array of buffers for each frame
 } AXPSpriteTextureData;
 
 typedef struct AXPSpriteData_s{
-    AXPFile* texture; // Original texture file
+    XPFile** textures; // Original texture files
     AXPSpriteTextureData* textureData; // Data optimized for rendering
-    int fps; // fps this animation runs at
+    int msPerFrame, currentFrame, lastFrameTime, numFrames; // fps this animation runs at
 } AXPSpriteData;
 
-GameObject* createAXPSprite(AXPFile* texture, int xpos, int ypos, Engine* engine);
+GameObject* createAXPSprite(XPFile** textures, int numFrames, int msPerFrame, int xpos, int ypos, int zorder, Engine* engine);
 void destroyAXPSprite(GameObject* sprite);
 
 #endif //__SPRITE_H_

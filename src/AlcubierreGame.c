@@ -9,6 +9,8 @@
 #include <objects/sprites.h>
 #include <objects/ui.h>
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
 /* gameState is a global variable (defined as extern in AlcubierreGame.h) for use by any
  * functions that need references to game objects or information about the state of the
@@ -24,6 +26,15 @@ void startGame(Engine* engine){
     
 	/* Set the engine in the game state, so other functions can use it */
     gameState.engine = engine;
+    
+    /* Initialize basic gameState info */
+    gameState.exit = false;
+
+    /* Run a loading animation while setting up the game */
+    XPFile* loadingAnimationFrames[4] = {getXPFile("./assets/Loading1.xp"), getXPFile("./assets/Loading2.xp"), getXPFile("./assets/Loading3.xp"), getXPFile("./assets/Loading4.xp")};
+    GameObject* loadingAnimation = createAXPSprite(loadingAnimationFrames, 4, 100, 0, 0, 1, engine);
+    centerObject((Object*)loadingAnimation, engine->mainPanel, ((XPSpriteData*)loadingAnimation->userData)->textureData->width, ((XPSpriteData*)loadingAnimation->userData)->textureData->height);
+    engine->mainPanel->childrenList = (Object*) loadingAnimation;
 	
     /* Initialize world state */
     initializeWorldState();
@@ -71,7 +82,27 @@ void initializeWorldState(){
 }
 
 void runIntroSequence(){
+    sleepms(5000); // simulate loading the game
+    /* Run static for 2 seconds (animated xp sprite) */
+    XPFile* staticFrames[3] = {getXPFile("./assets/Static1.xp"), getXPFile("./assets/Static2.xp"), getXPFile("./assets/Static3.xp")};
+    GameObject* staticAnimation = createAXPSprite(staticFrames, 3, 10, 0, 0, 1, gameState.engine);
+    
+    lockThreadLock(&gameState.engine->renderThreadData.renderLock);
+    gameState.engine->mainPanel->childrenList = (Object*) staticAnimation;
+    unlockThreadLock(&gameState.engine->renderThreadData.renderLock);
 
+    sleepms(2000);
+
+    /* Replace static animation with static hacked animation, run for 2 seconds */
+    XPFile* hackFrames[4] = {getXPFile("./assets/Static_Hack1.xp"), getXPFile("./assets/Static_Hack2.xp"), getXPFile("./assets/Static_Hack3.xp"), getXPFile("./assets/Static_Hack4.xp")};
+    GameObject* hackAnimation = createAXPSprite(hackFrames, 4, 10, 0, 0, 1, gameState.engine);
+
+    lockThreadLock(&gameState.engine->renderThreadData.renderLock);
+    gameState.engine->mainPanel->childrenList = (Object*) hackAnimation;
+    unlockThreadLock(&gameState.engine->renderThreadData.renderLock);
+
+    /* Text crawl (move an xp sprite with text up the screen) */
+    sleepms(5000);
 }
 
 void buildTitleScreen(){
@@ -82,8 +113,9 @@ void buildTitleScreen(){
     gameState.titleScreen = createPanel(gameState.engine->width, gameState.engine->height, 0, 0, 0);
 
     /* Load title screen texture */
-    XPFile* titleTexture = getXPFile("./Alcubierre_Title.xp");
+    XPFile* titleTexture = getXPFile("./assets/Alcubierre_Title.xp");
     GameObject* titleTextureObject = createXPSprite(titleTexture, 0, 0, 0, gameState.engine);
+    centerObject((Object*)titleTextureObject, gameState.titleScreen, titleTexture->layers[0].width, titleTexture->layers[0].height);
     gameState.titleScreen->addObject(gameState.titleScreen, (Object*)titleTextureObject);
     
     /* Create main menu */
@@ -91,12 +123,8 @@ void buildTitleScreen(){
     char keys[] = {'p', 'i', 'b', 'e'};
     pfn_SelectionCallback callbacks[] = {playCallback, infoCallback, backstoryCallback, exitCallback};
     GameObject* menu = createSelectionWindow(items, keys, callbacks, 4, 0, 0, 1, gameState.engine);
-    // move menu to center x of panel, and 3/4 down y
-    int menuX = (gameState.titleScreen->width - ((SelectionWindowData*)menu->userData)->width) / 2;
-    int menuY = (gameState.titleScreen->height - (float)((SelectionWindowData*)menu->userData)->height) * (3.0f/4.0f);
-    
-    menu->objectProperties.x = menuX;
-    menu->objectProperties.y = menuY;
+    allignObjectX((Object*)menu, gameState.titleScreen, ((SelectionWindowData*)menu->userData)->width, .5);
+    allignObjectY((Object*)menu, gameState.titleScreen, ((SelectionWindowData*)menu->userData)->height, .75);
     gameState.titleScreen->addObject(gameState.titleScreen, (Object*)menu);
 
     /* Save listener list */
@@ -111,17 +139,18 @@ void buildOverviewScreen(){
     gameState.overviewScreen = createPanel(gameState.engine->width, gameState.engine->height, 0, 0, 0);
 
     /* Load basic overview texture */
-    XPFile* overviewTexture = getXPFile("./Overview.xp");
+    XPFile* overviewTexture = getXPFile("./assets/Overview.xp");
 
     /* Create sprite for background */
     GameObject* backgroundSprite = createXPSprite(overviewTexture, 0, 0, 0, gameState.engine);
+    centerObject((Object*)backgroundSprite, gameState.overviewScreen, overviewTexture->layers[0].width, overviewTexture->layers[0].height);
     gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)backgroundSprite);
 
     /* Add location markers to overview screen */
-    XPFile* locationUnknown = getXPFile("./Location_Unknown.xp");
-    XPFile* locationCurrent = getXPFile("./Location_Current.xp");
-    XPFile* locationCompleted = getXPFile("./Location_Completed.xp");
-    XPFile* locationSkipped = getXPFile("./Location_Skipped.xp");
+    XPFile* locationUnknown = getXPFile("./assets/Location_Unknown.xp");
+    XPFile* locationCurrentFrames[2] = {getXPFile("./assets/Location_Current1.xp"), getXPFile("./assets/Location_Current2.xp")};
+    XPFile* locationCompleted = getXPFile("./assets/Location_Completed.xp");
+    XPFile* locationSkipped = getXPFile("./assets/Location_Skipped.xp");
 
     // Get height and y location for each marker (same for all of them)
     int markerHeight = locationUnknown->layers[0].height;
@@ -129,7 +158,7 @@ void buildOverviewScreen(){
     
     // The starting value of markerX, which will change to keep track of each new marker
     // This is kinda a magic variable, tweaked until it looks right
-    int markerX = 8;
+    int markerX = backgroundSprite->objectProperties.x + 8;
 
     for (int i = 0; i < 9; i++){
         GameObject* marker;
@@ -138,7 +167,7 @@ void buildOverviewScreen(){
             marker = createXPSprite(locationUnknown, markerX, markerY, 1, gameState.engine);
             break;
         case LOCATION_CURRENT:
-            marker = createXPSprite(locationCurrent, markerX, markerY, 1, gameState.engine);
+            marker = createAXPSprite(locationCurrentFrames, 2, 500, markerX, markerY, 1, gameState.engine);
             break;
         case LOCATION_COMPLETED:
             marker = createXPSprite(locationCompleted, markerX, markerY, 1, gameState.engine);
@@ -241,7 +270,7 @@ void backstoryCallback(){
 }
 
 void exitCallback(){
-    endwin();
-    printf("Exit callback called\n");
-    exit(0);
+    lockThreadLock(&gameStateLock);
+    gameState.exit = true;
+    unlockThreadLock(&gameStateLock);
 }

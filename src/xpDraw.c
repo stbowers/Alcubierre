@@ -46,38 +46,38 @@ wchar_t getUTF8CharForCP437Value(int value){
         /* Code points 1-31 and 127 are ASCII control characters
          * but represent graphical characters for our use
          */
-        CP437_UTF8_CODE[1] = L'?';
-        CP437_UTF8_CODE[2] = L'?';
-        CP437_UTF8_CODE[3] = L'?';
+        CP437_UTF8_CODE[1] = L'\u263A'; // ☺
+        CP437_UTF8_CODE[2] = L'\u263B'; // ☻
+        CP437_UTF8_CODE[3] = L'\u2665'; // ♥
         CP437_UTF8_CODE[4] = L'\u2666'; // ♦
-        CP437_UTF8_CODE[5] = L'?';
-        CP437_UTF8_CODE[6] = L'?';
-        CP437_UTF8_CODE[7] = L'?';
-        CP437_UTF8_CODE[8] = L'?';
+        CP437_UTF8_CODE[5] = L'\u2663'; // ♣
+        CP437_UTF8_CODE[6] = L'\u2660'; // ♠
+        CP437_UTF8_CODE[7] = L'\u2022'; // •
+        CP437_UTF8_CODE[8] = L'\u25D8'; // ◘
         CP437_UTF8_CODE[9] = L'\u25CB'; // ○
-        CP437_UTF8_CODE[10] = L'?';
-        CP437_UTF8_CODE[11] = L'?';
-        CP437_UTF8_CODE[12] = L'?';
-        CP437_UTF8_CODE[13] = L'?';
-        CP437_UTF8_CODE[14] = L'?';
-        CP437_UTF8_CODE[15] = L'?';
-        CP437_UTF8_CODE[16] = L'?';
-        CP437_UTF8_CODE[17] = L'?';
-        CP437_UTF8_CODE[18] = L'?';
-        CP437_UTF8_CODE[19] = L'?';
-        CP437_UTF8_CODE[20] = L'?';
-        CP437_UTF8_CODE[21] = L'?';
-        CP437_UTF8_CODE[22] = L'?';
-        CP437_UTF8_CODE[23] = L'?';
-        CP437_UTF8_CODE[24] = L'?';
-        CP437_UTF8_CODE[25] = L'?';
-        CP437_UTF8_CODE[26] = L'?';
-        CP437_UTF8_CODE[27] = L'?';
-        CP437_UTF8_CODE[28] = L'?';
-        CP437_UTF8_CODE[29] = L'?';
+        CP437_UTF8_CODE[10] = L'\u25D9'; // ◙
+        CP437_UTF8_CODE[11] = L'\u2642'; // ♂
+        CP437_UTF8_CODE[12] = L'\u2640'; // ♀
+        CP437_UTF8_CODE[13] = L'\u266A'; // ♪
+        CP437_UTF8_CODE[14] = L'\u266B'; // ♫
+        CP437_UTF8_CODE[15] = L'\u263C'; // ☼
+        CP437_UTF8_CODE[16] = L'\u25BA'; // ►
+        CP437_UTF8_CODE[17] = L'\u25C4'; // ◄
+        CP437_UTF8_CODE[18] = L'\u2195'; // ↕
+        CP437_UTF8_CODE[19] = L'\u203C'; // ‼
+        CP437_UTF8_CODE[20] = L'\u00B6'; // ¶
+        CP437_UTF8_CODE[21] = L'\u00A7'; // §
+        CP437_UTF8_CODE[22] = L'\u25AC'; // ▬
+        CP437_UTF8_CODE[23] = L'\u21A8'; // ↨
+        CP437_UTF8_CODE[24] = L'\u2191'; // ↑
+        CP437_UTF8_CODE[25] = L'\u2193'; // ↓
+        CP437_UTF8_CODE[26] = L'\u2192'; // →
+        CP437_UTF8_CODE[27] = L'\u2190'; // ←
+        CP437_UTF8_CODE[28] = L'\u221F'; // ∟
+        CP437_UTF8_CODE[29] = L'\u2194'; // ↔
         CP437_UTF8_CODE[30] = L'\u25B2'; // ▲
         CP437_UTF8_CODE[31] = L'\u25BC'; // ▼
-        CP437_UTF8_CODE[127] = L'?';
+        CP437_UTF8_CODE[127] = L'\u2302'; // ⌂
         
         /* The rest of the chars (128-256) are set to ?
          * to indicate that the proper value hasn't been
@@ -94,6 +94,10 @@ wchar_t getUTF8CharForCP437Value(int value){
         CP437_UTF8_CODE[177] = L'\u2592'; // med checkerboard
         CP437_UTF8_CODE[178] = L'\u2593'; // dark checkerboard
         CP437_UTF8_CODE[219] = L'\u2588'; // full block
+        CP437_UTF8_CODE[220] = L'\u2584'; // ▄
+        CP437_UTF8_CODE[221] = L'\u258C'; // ▌
+        CP437_UTF8_CODE[222] = L'\u2590'; // ▐
+        CP437_UTF8_CODE[223] = L'\u2580'; // ▀
 
         // lines
         CP437_UTF8_CODE[179] = L'\u2502'; // │
@@ -115,8 +119,8 @@ wchar_t getUTF8CharForCP437Value(int value){
         CP437_UTF8_CODE[195] = L'\u251C'; // ├
         CP437_UTF8_CODE[196] = L'\u2500'; // ─
         CP437_UTF8_CODE[197] = L'\u253C'; // ┼
-        CP437_UTF8_CODE[198] = L'?';
-        CP437_UTF8_CODE[199] = L'?';
+        CP437_UTF8_CODE[198] = L'\u255E'; // ╞
+        CP437_UTF8_CODE[199] = L'\u255F'; // ╟
         CP437_UTF8_CODE[200] = L'\u255A'; // ╚
         CP437_UTF8_CODE[201] = L'\u2554'; // ╔
         CP437_UTF8_CODE[202] = L'\u2569'; // ╩
@@ -124,19 +128,101 @@ wchar_t getUTF8CharForCP437Value(int value){
         CP437_UTF8_CODE[204] = L'\u2560'; // ╠
         CP437_UTF8_CODE[205] = L'\u2550'; // ═
         CP437_UTF8_CODE[206] = L'\u256C'; // ╬
-        CP437_UTF8_CODE[207] = L'?';
+        CP437_UTF8_CODE[207] = L'\u2567'; // ╧
         CP437_UTF8_CODE[208] = L'\u2568'; // ╨
-        CP437_UTF8_CODE[209] = L'?';
+        CP437_UTF8_CODE[209] = L'\u2564'; // ╤
         CP437_UTF8_CODE[210] = L'\u2565'; // ╥
-        CP437_UTF8_CODE[211] = L'?';
-        CP437_UTF8_CODE[212] = L'?';
-        CP437_UTF8_CODE[213] = L'?';
-        CP437_UTF8_CODE[214] = L'?';
-        CP437_UTF8_CODE[215] = L'?';
-        CP437_UTF8_CODE[216] = L'?';
+        CP437_UTF8_CODE[211] = L'\u2559'; // ╙
+        CP437_UTF8_CODE[212] = L'\u2558'; // ╘
+        CP437_UTF8_CODE[213] = L'\u2552'; // ╒
+        CP437_UTF8_CODE[214] = L'\u2553'; // ╓
+        CP437_UTF8_CODE[215] = L'\u256B'; // ╫
+        CP437_UTF8_CODE[216] = L'\u256A'; // ╪
         CP437_UTF8_CODE[217] = L'\u2518'; // ┘
         CP437_UTF8_CODE[218] = L'\u250C'; // ┌
 
+        // Non-english alphabet letters
+        CP437_UTF8_CODE[128] = L'\u00C7'; // Ç
+        CP437_UTF8_CODE[129] = L'\u00FC'; // ü
+        CP437_UTF8_CODE[130] = L'\u00E9'; // é
+        CP437_UTF8_CODE[131] = L'\u00E2'; // â
+        CP437_UTF8_CODE[132] = L'\u00E4'; // ä
+        CP437_UTF8_CODE[133] = L'\u00E0'; // à
+        CP437_UTF8_CODE[134] = L'\u00E5'; // å
+        CP437_UTF8_CODE[135] = L'\u00E7'; // ç
+        CP437_UTF8_CODE[136] = L'\u00EA'; // ê
+        CP437_UTF8_CODE[137] = L'\u00EB'; // ë
+        CP437_UTF8_CODE[138] = L'\u00E8'; // è
+        CP437_UTF8_CODE[139] = L'\u00EF'; // ï
+        CP437_UTF8_CODE[140] = L'\u00EE'; // î
+        CP437_UTF8_CODE[141] = L'\u00EC'; // ì
+        CP437_UTF8_CODE[142] = L'\u00C4'; // Ä
+        CP437_UTF8_CODE[143] = L'\u00C5'; // Å
+        CP437_UTF8_CODE[144] = L'\u00C9'; // É
+        CP437_UTF8_CODE[145] = L'\u00E6'; // æ
+        CP437_UTF8_CODE[146] = L'\u00C6'; // Æ
+        CP437_UTF8_CODE[147] = L'\u00F4'; // ô
+        CP437_UTF8_CODE[148] = L'\u00F6'; // ö
+        CP437_UTF8_CODE[149] = L'\u00F2'; // ò
+        CP437_UTF8_CODE[150] = L'\u00FB'; // û
+        CP437_UTF8_CODE[151] = L'\u00F9'; // ù
+        CP437_UTF8_CODE[152] = L'\u00FF'; // ÿ
+        CP437_UTF8_CODE[153] = L'\u00D6'; // Ö
+        CP437_UTF8_CODE[154] = L'\u00DC'; // Ü
+        CP437_UTF8_CODE[155] = L'\u00A2'; // ¢
+        CP437_UTF8_CODE[156] = L'\u00A3'; // £
+        CP437_UTF8_CODE[157] = L'\u00A5'; // ¥
+        CP437_UTF8_CODE[158] = L'\u20A7'; // ₧
+        CP437_UTF8_CODE[159] = L'\u0192'; // ƒ
+        CP437_UTF8_CODE[160] = L'\u00E1'; // á
+        CP437_UTF8_CODE[161] = L'\u00ED'; // í
+        CP437_UTF8_CODE[162] = L'\u00F3'; // ó
+        CP437_UTF8_CODE[163] = L'\u00FA'; // ú
+        CP437_UTF8_CODE[164] = L'\u00F1'; // ñ
+        CP437_UTF8_CODE[165] = L'\u00D1'; // Ñ
+        CP437_UTF8_CODE[166] = L'\u00AA'; // ª
+        CP437_UTF8_CODE[167] = L'\u00BA'; // º
+        CP437_UTF8_CODE[168] = L'\u00BF'; // ¿
+        CP437_UTF8_CODE[169] = L'\u2310'; // ⌐
+        CP437_UTF8_CODE[170] = L'\u00AC'; // ¬
+        CP437_UTF8_CODE[171] = L'\u00BD'; // ½
+        CP437_UTF8_CODE[172] = L'\u00BC'; // ¼
+        CP437_UTF8_CODE[173] = L'\u00A1'; // ¡
+        CP437_UTF8_CODE[174] = L'\u00AB'; // «
+        CP437_UTF8_CODE[175] = L'\u00BB'; // »
+
+        // Math symbols
+        CP437_UTF8_CODE[224] = L'\u03B1'; // α
+        CP437_UTF8_CODE[225] = L'\u00DF'; // ß
+        CP437_UTF8_CODE[226] = L'\u0393'; // Γ
+        CP437_UTF8_CODE[227] = L'\u03C0'; // π
+        CP437_UTF8_CODE[228] = L'\u03A3'; // Σ
+        CP437_UTF8_CODE[229] = L'\u03C3'; // σ
+        CP437_UTF8_CODE[230] = L'\u00B5'; // µ
+        CP437_UTF8_CODE[231] = L'\u03C4'; // τ
+        CP437_UTF8_CODE[232] = L'\u03A6'; // Φ
+        CP437_UTF8_CODE[233] = L'\u0398'; // Θ
+        CP437_UTF8_CODE[234] = L'\u03A9'; // Ω
+        CP437_UTF8_CODE[235] = L'\u03B4'; // δ
+        CP437_UTF8_CODE[236] = L'\u221E'; // ∞
+        CP437_UTF8_CODE[237] = L'\u03C6'; // φ
+        CP437_UTF8_CODE[238] = L'\u03B5'; // ε
+        CP437_UTF8_CODE[239] = L'\u2229'; // ∩
+        CP437_UTF8_CODE[240] = L'\u2261'; // ≡
+        CP437_UTF8_CODE[241] = L'\u00B1'; // ±
+        CP437_UTF8_CODE[242] = L'\u2265'; // ≥
+        CP437_UTF8_CODE[243] = L'\u2264'; // ≤
+        CP437_UTF8_CODE[244] = L'\u2320'; // ⌠
+        CP437_UTF8_CODE[245] = L'\u2321'; // ⌡
+        CP437_UTF8_CODE[246] = L'\u00F7'; // ÷
+        CP437_UTF8_CODE[247] = L'\u2248'; // ≈
+        CP437_UTF8_CODE[248] = L'\u00B0'; // °
+        CP437_UTF8_CODE[249] = L'\u2219'; // ∙
+        CP437_UTF8_CODE[250] = L'\u00B7'; // ·
+        CP437_UTF8_CODE[251] = L'\u221A'; // √
+        CP437_UTF8_CODE[252] = L'\u207F'; // ⁿ
+        CP437_UTF8_CODE[253] = L'\u00B2'; // ²
+        CP437_UTF8_CODE[254] = L'\u25A0'; // ■
         
         /* set init bool to true */
         CP437_UTF8_CODE_INITIALIZED = true;
@@ -144,88 +230,6 @@ wchar_t getUTF8CharForCP437Value(int value){
 
     /* Simply return the wchar_t at the index vaule */
     return CP437_UTF8_CODE[value];
-}
-
-/* Color helper functions */
-/* Searches through the available terminal colors for the one that is closest
- * to the given rgb value (by euclidian distance), or if the terminal supports
- * changing colors start changing colors past 16 (standard colors)
- */
-int nextColor = 16;
-int getBestColor(int r, int g, int b, Engine* engine){
-    int bestColor = 0;
-    float bestr2 = 2e6; // max distance in color space is ~1.96e5, so all colors should be closer than this initial value
-    
-    // number of colors to search through (full range if can't change colors, else only the colors that have been set)
-    int numColors = (can_change_color())?nextColor:COLORS;
-
-    /* Loop through avaliable terminal colors */
-    for (int color = 0; color < numColors; color++){
-        /* Get rgb value of terminal color */
-        short tr, tg, tb;
-        color_content(color, &tr, &tg, &tb);
-
-        /* Normalize terminal color */
-        /* color_content returns values between 0 and 1000,
-         * so normalize them to be between 0 and 255
-         */
-        tr = tr / (3.9f);
-        tg = tg / (3.9f);
-        tb = tb / (3.9f);
-
-        /* Get the square of the euclidian distance
-         * r^2 = (x^2 + y^2 + z^2) 
-         */
-
-        float r2 = pow((tr -r), 2) + pow((tg - g), 2) + pow((tb - b), 2);
-
-        /* Compare to bestr2 */
-        if (r2 < bestr2){
-            bestColor = color;
-            bestr2 = r2;
-        }
-    }
-    
-    if (bestr2 < 150 || !can_change_color()){
-        // if we found a close enough match, or can't change colors return that
-        return bestColor;
-    }
-
-    // else change the next color and return that
-    // We need to have the drawing mutex before calling init_color, because init_color sends control characters to the terminal
-    lockThreadLock(&engine->renderThreadData.drawLock);
-    init_color(nextColor, r*3.9, g*3.9, b*3.9);
-    unlockThreadLock(&engine->renderThreadData.drawLock);
-    nextColor++;
-    return nextColor - 1;
-}
-
-/* Search for an existing color pair with the given colors, and if
- * one isn't found make a new one at nextColorPair
- */
-int nextColorPair = 1;
-int getColorPair(int fg, int bg, Engine* engine){
-    for (int pair = 0; pair < nextColorPair; pair++){
-        /* Get colors in pair */
-        short pfg, pbg;
-        pair_content(pair, &pfg, &pbg);
-
-        /* If they match, return */
-        if (pfg == fg && pbg == bg){
-            return pair;
-        }
-    }
-
-    /* If we leave loop, no matching pair was found.
-     * Create a new one at nextColorPair and increment
-     * nextColorPair
-     */
-    // We need the drawing mutex to use init_pair, since it sends control characters to the terminal
-    lockThreadLock(&engine->renderThreadData.drawLock);
-    init_pair(nextColorPair, fg, bg);
-    unlockThreadLock(&engine->renderThreadData.drawLock);
-    nextColorPair++;
-    return nextColorPair - 1;
 }
 
 /* Draw function */

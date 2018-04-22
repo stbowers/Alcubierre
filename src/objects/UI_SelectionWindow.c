@@ -53,7 +53,7 @@ GameObject* createSelectionWindow(char** list, char* keys, pfn_SelectionCallback
     data->list = (char**) malloc(sizeof(char*) * numOptions);
     memcpy(data->list, list, sizeof(char*) * numOptions);
     data->keys = (char*) malloc(sizeof(char) * numOptions);
-    memcpy(data->keys, keys, sizeof(char*) * numOptions);
+    memcpy(data->keys, keys, sizeof(char) * numOptions);
     data->callbacks = (pfn_SelectionCallback*) malloc (sizeof(pfn_SelectionCallback) * numOptions);
     memcpy(data->callbacks, callbacks, sizeof(pfn_SelectionCallback) * numOptions);
 

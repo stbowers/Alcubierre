@@ -14,6 +14,9 @@
 typedef struct AlcubierreGameState_s{
     Engine* engine;
 
+    // used to send a signal to the main thread that the game should exit now
+    bool exit;
+
     Panel* titleScreen;
     Panel* overviewScreen;
 
@@ -32,7 +35,7 @@ typedef struct AlcubierreGameState_s{
     } locations[9];
 } AlcubierreGameState;
 extern AlcubierreGameState gameState;
-extern ThreadLock_t gameStateMutex;
+extern ThreadLock_t gameStateLock;
 
 void startGame(Engine* engine);
 // Should be called before destroyEngine to clean up any resources we own.

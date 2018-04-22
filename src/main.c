@@ -10,6 +10,12 @@
 #include <locale.h>
 #include <AlcubierreGame.h>
 
+/* The regular getch function is not thread safe, so this
+ * function makes sure the proper locks are heald by this
+ * thread before calling getch()
+ */
+int getch_safe(Engine* engine);
+
 int main(){
 	/* Block for attaching debugger or resizing window before running code */
     #ifndef __LINUX__
@@ -20,10 +26,11 @@ int main(){
     setlocale(LC_CTYPE, "");
 
     /* Initialize engine */
-    // Our game runs in a 128x72 (16:9) window
-    Engine* engine = initializeEngine(128, 72);
+    // Run in a 256x72 window (~16x9 with chars that are twice as tall as they are wide)
+    Engine* engine = initializeEngine(256, 72);
     
     /* Write some debug output to stdscr, and a pause for debugging before starting the game */
+    wprintw(engine->stdscr, "DEBUG INFO:\n");
     wprintw(engine->stdscr, "Term supports %d colors\n", COLORS);
     wprintw(engine->stdscr, "Term supports %d color pairs\n", COLOR_PAIRS);
     wprintw(engine->stdscr, "Term can change color: %s\n", (can_change_color())?"true":"false");
@@ -34,7 +41,7 @@ int main(){
     wprintw(engine->stdscr, "Testing Color - blue with black background...\n");
     attroff(COLOR_PAIR(1));
     
-    printw("Pres any key to start...\n");
+    printw("Press any key to start...\n");
     wgetch(engine->stdscr); // block on debug stuff until key is pressed
 
     wclear(engine->stdscr);
@@ -48,22 +55,17 @@ int main(){
     // call to startGame in AlcubierreGame.c
     startGame(engine);
     
-    /* Main thread is done - wait for 'q' to be pressed to exit, send keyboard events to the engine */
-    //timeout(0); // don't block on getch()
-    /* Create window that isn't visible (shares memory with stdscr)
-     * to get characters from. refreshing it will have no effect 
-     * on the rest of the engine.
-     *
-     * We need to do this because getch and wgetch have an implicit
-     * call to wrefresh, which can corrupt memory since we're updating
-     * panels on another thread. So instead we refresh a 1x1 window in
-     * the top left corner, so as to be unintrusive. By using subwin
-     * instead of newwin, the 1x1 window will share memory with stdscr,
-     * and thus anything printed on stdscr won't be blanked out by the
-     * new window.
+    /* Main thread is done - now loop getting keyboard input and sending
+     * keyboard events to the engine. If F1 is pressed, quit
      */
-    char input;
-    while ((input = getchar()) != 'q'){
+    timeout(0); // don't block on getch()
+    int input;
+    while ((input = getch_safe(engine)) != KEY_F(1)){
+        lockThreadLock(&gameStateLock);
+        if (gameState.exit){
+            break;
+        }
+        unlockThreadLock(&gameStateLock);
         // create keyboard input event if key pressed
         if (input != ERR){
             // the memory is managed by the event thread after we send the event, so no need to free the event here
@@ -85,4 +87,11 @@ int main(){
     destroyEngine(engine);
 
     return 0;
+}
+
+int getch_safe(Engine* engine){
+    lockThreadLock(&engine->renderThreadData.drawLock);
+    int ch = wgetch(engine->stdscr);
+    unlockThreadLock(&engine->renderThreadData.drawLock);
+    return ch;
 }

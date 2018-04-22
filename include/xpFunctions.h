@@ -62,22 +62,9 @@ typedef struct XPFile_s{
     struct XPLayer_s* layers; // data for each layer
 } XPFile;
 
-/* The structure of a .axp file (animated xp file) is simply just a header
- * right before the normal .xp file; note: axp is a format I created for
- * this engine
- */
-typedef struct AXPFile_s{
-    int32_t version; // version of axp - the only valid version right now is 0x01
-    int32_t fps; // fps the animation should be played at
-    struct XPFile_s* xpFile; // normal xp file
-} AXPFile;
-
-/* Functions for xp and axp files */
+/* Functions for xp files */
 XPFile* getXPFile(const char* filename);
 void freeXPFile(XPFile* file);
-
-AXPFile* getAXPFile(const char* filename);
-void freeAXPFile(AXPFile* file);
 
 /* Draws a given layer to the given panel
  * clearPanel: if true the panel will be cleared before drawing
