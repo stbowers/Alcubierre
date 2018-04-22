@@ -27,9 +27,12 @@ typedef struct OverviewScreenState_s{
 extern OverviewScreenState overviewScreenState;
 extern ThreadLock_t overviewScreenStateLock;
 
-void overviewScreenHandleEvents(Object* overviewScreen, Event* event);
+/* Main functions */
 void buildOverviewScreen();
 void updateOverviewScreen();
+
+/* Event handlers */
+void overviewScreenHandleEvents(Object* overviewScreen, Event* event);
 
 /* Sector mission selection callbacks */
 void missionSelected(int index);

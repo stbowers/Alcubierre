@@ -27,6 +27,20 @@ typedef struct AlcubierreGameState_s{
     EventListener* titleScreenListenerList;
     EventListener* overviewScreenListenerList;
 
+    /* Game State */
+    /* There are 15 difficulty levels; 3 for easy, 3 for medium, 3 for hard, and 6 are above hard, but can't be chosen as a starting difficulty
+     * Easy starts the game at 1
+     * Medium starts the game at 4
+     * Hard starts the game at 7
+     * each sector increases the difficulty, so 
+     * easy ends the game on 9
+     * medium ends the game on 12
+     * hard ends the game 15
+     *
+     * there is also a 'reserved' difficulty of 0 used for demos and testing, which means you don't take damage, and the enemy is always set to easy
+     */
+    int difficulty;
+
     /* World State */
     enum LocationSate_e{
         LOCATION_UNKNOWN,
@@ -43,13 +57,7 @@ void startGame(Engine* engine, bool skipIntro);
 // Should be called before destroyEngine to clean up any resources we own.
 void cleanUpGame();
 
-void playCallback();
-void infoCallback();
-void backstoryCallback();
-void exitCallback();
-
 void initializeWorldState();
 void runIntroSequence();
-void buildTitleScreen();
 
 #endif //__ALCUBIERREGAME_H__

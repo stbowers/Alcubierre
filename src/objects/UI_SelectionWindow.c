@@ -21,7 +21,7 @@ void drawSelectionWindowBuffer(GameObject* selectionWindow);
 
 /* ui.h implementation */
 
-GameObject* createSelectionWindow(char** list, char* keys, bool bordered, bool arrowSelection, pfn_SelectionCallback* callbacks, bool registerForEvents, int numOptions, int minWidth, int xpos, int ypos, int z, Engine* engine){
+GameObject* createSelectionWindow(char** list, char* keys, bool bordered, bool arrowSelection, pfn_SelectionCallback* callbacks, pfn_SelectionCallback selectionChangedCallback, bool registerForEvents, int numOptions, int minWidth, int xpos, int ypos, int z, Engine* engine){
     /* Create new game object */
     GameObject* newObject = (GameObject*) malloc(sizeof(GameObject));
     newObject->timeCreated = getTimems();
@@ -74,6 +74,7 @@ GameObject* createSelectionWindow(char** list, char* keys, bool bordered, bool a
     memcpy(data->keys, keys, sizeof(char) * numOptions);
     data->callbacks = (pfn_SelectionCallback*) malloc (sizeof(pfn_SelectionCallback) * numOptions);
     memcpy(data->callbacks, callbacks, sizeof(pfn_SelectionCallback) * numOptions);
+    data->selectionChangedCallback = selectionChangedCallback;
 
     /* Set up buffer */
     data->buffer = (CursesChar*) malloc(sizeof(CursesChar) * data->width * data->height);
@@ -218,6 +219,9 @@ void selectionWindowHandleEvents(Object* self, Event* event){
                 // move selection up if current selection is not zero
                 if (data->currentSelection > 0){
                     data->currentSelection--;
+                    if (data->selectionChangedCallback != NULL){
+                        data->selectionChangedCallback(data->currentSelection);
+                    }
                 }
 
                 // update buffer
@@ -227,6 +231,9 @@ void selectionWindowHandleEvents(Object* self, Event* event){
                 // move selection down if current selection is not the last option
                 if (data->currentSelection < (data->numOptions - 1)){
                     data->currentSelection++;
+                    if (data->selectionChangedCallback != NULL){
+                        data->selectionChangedCallback(data->currentSelection);
+                    }
                 }
 
                 // update buffer

@@ -72,10 +72,10 @@ void buildOverviewScreen(){
     overviewScreenState.missionSelectionPanel = createPanel(missionPanelWidth, missionPanelHeight, 0, 0, 2);
     
     // add ui selection window to panel
-    char* items[] = {"Mission 1", "Mission 2", "Mission 3", "Skip Sector"};
+    char* items[] = {"(1) Mission 1", "(2) Mission 2", "(3) Mission 3", "(S) Skip Sector"};
     char keys[] = {'1', '2', '3', 's'};
     pfn_SelectionCallback callbacks[] = {missionSelected, missionSelected, missionSelected, sectorSkipped};
-    GameObject* menu = createSelectionWindow(items, keys, true, true, callbacks, false, 4, missionPanelWidth, 0, 0, 1, gameState.engine);
+    GameObject* menu = createSelectionWindow(items, keys, true, true, callbacks, NULL, false, 4, missionPanelWidth, 0, 0, 1, gameState.engine);
     overviewScreenState.missionSelectionMenu = menu;
     allignObjectX((Object*)menu, gameState.titleScreen, ((SelectionWindowData*)menu->userData)->width, .5);
     allignObjectY((Object*)menu, gameState.titleScreen, ((SelectionWindowData*)menu->userData)->height, .5);
