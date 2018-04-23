@@ -13,7 +13,7 @@
 #include <objects/sprites.h>
 
 typedef struct StationMissionScreenState_s{
-
+	GameObject thing;
 } StationMissionScreenState;
 extern StationMissionScreenState stationMissionScreenState;
 extern ThreadLock_t stationMissionScreenStateLock;

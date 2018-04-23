@@ -13,7 +13,7 @@
 #include <objects/sprites.h>
 
 typedef struct StoreScreenState_s{
-
+	GameObject* storeList;
 } StoreScreenState;
 extern StoreScreenState storeScreenState;
 extern ThreadLock_t storeScreenStateLock;

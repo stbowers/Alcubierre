@@ -11,12 +11,15 @@
 
 #ifdef __WIN32__
 #define PDC_WIDE
-#define PDC_RGB
 #include <curses.h>
 
 // Set up true and false for windows
 #define true TRUE
 #define false FALSE
+
+// PDcurses says the windows terminal can change color, but it seems to just cause errors, so redef can_change_color() to false
+#define can_change_color() false
+
 #elif __UNIX__
 #define _XOPEN_SOURCE_EXTENDED
 #include <ncurses.h>

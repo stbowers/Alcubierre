@@ -7,6 +7,9 @@
  */
 #include <game/StationMissionScreen.h>
 
+StationMissionScreenState stationMissionScreenState;
+ThreadLock_t stationMissionScreenStateLock;
+
 void buildStationMissionScreen(){
     /* Initialize lock and state */
     createLock(&stationMissionScreenStateLock);

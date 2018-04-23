@@ -560,7 +560,8 @@ int drawingThreadFunction(void* data){
             for (int x = 0; x < engine->stdscrWidth; x++){
                 CursesChar* currentChar = &(*engine->renderThreadData.drawingBuffer)[(engine->stdscrHeight * x) + y];
                 #ifdef __WIN32__
-                waddch(engine->stdscr, currentChar->character | currentChar->attributes);
+				cchar_t pdcursesChar = currentChar->character | currentChar->attributes;
+                wadd_wch(engine->stdscr, &pdcursesChar);
                 #elif __UNIX__
                 cchar_t ncursesChar;
                 ncursesChar.attr = currentChar->attributes;

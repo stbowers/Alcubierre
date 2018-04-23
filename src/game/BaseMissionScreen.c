@@ -7,6 +7,9 @@
  */
 #include <game/BaseMissionScreen.h>
 
+BaseMissionScreenState baseMissionScreenState;
+ThreadLock_t baseMissionScreenStateLock;
+
 void buildBaseMissionScreen(){
     /* Initialize lock and state */
     createLock(&baseMissionScreenStateLock);

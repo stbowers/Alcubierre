@@ -7,6 +7,9 @@
  */
 #include <game/StoreScreen.h>
 
+StoreScreenState storeScreenState;
+ThreadLock_t storeScreenStateLock;
+
 void buildStoreScreen(){
     /* Initialize lock and state */
     createLock(&storeScreenStateLock);
