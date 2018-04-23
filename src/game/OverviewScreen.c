@@ -66,26 +66,43 @@ void buildOverviewScreen(){
     updateOverviewScreen();
     lockThreadLock(&overviewScreenStateLock);
 
+
+
+    /* Create end screen */
+    overviewScreenState.endGameScreen = createPanel(100, 50, 0, 0, 2);
+    centerObject((Object*)overviewScreenState.endGameScreen, gameState.engine->mainPanel, 100, 50);
+
+    overviewScreenState.endText = createTextBox("You Win!", 0, true, 100, 50, 0, 0, 1, gameState.engine);
+    overviewScreenState.endGameScreen->addObject(overviewScreenState.endGameScreen, (Object*)overviewScreenState.endText);
+
+
+
     /* Create mission select panel for the current sector */
-    int missionPanelWidth = 50;
-    int missionPanelHeight = 6;
+    int missionPanelWidth = gameState.engine->width * (.6f);
+    int missionPanelHeight = gameState.engine->height * (.9f);
+    int missionPanelInfoWidth = missionPanelWidth * (.6f);
+    int missionPanelMenuWidth = missionPanelWidth - (missionPanelInfoWidth + 1);
     overviewScreenState.missionSelectionPanel = createPanel(missionPanelWidth, missionPanelHeight, 0, 0, 2);
+    centerObject((Object*)overviewScreenState.missionSelectionPanel, gameState.engine->mainPanel, missionPanelWidth, missionPanelHeight);
+    
+    // add mission info text box to panel
+    overviewScreenState.missionSelectionInfo = createTextBox("", 0, true, missionPanelInfoWidth, missionPanelHeight, 0, 0, 2, gameState.engine);
+    overviewScreenState.missionSelectionPanel->addObject(overviewScreenState.missionSelectionPanel, (Object*)overviewScreenState.missionSelectionInfo);
     
     // add ui selection window to panel
     char* items[] = {"(1) Mission 1", "(2) Mission 2", "(3) Mission 3", "(S) Skip Sector"};
     char keys[] = {'1', '2', '3', 's'};
     pfn_SelectionCallback callbacks[] = {missionSelected, missionSelected, missionSelected, sectorSkipped};
-    GameObject* menu = createSelectionWindow(items, keys, true, true, callbacks, NULL, false, 4, missionPanelWidth, 0, 0, 1, gameState.engine);
-    overviewScreenState.missionSelectionMenu = menu;
-    allignObjectX((Object*)menu, gameState.titleScreen, ((SelectionWindowData*)menu->userData)->width, .5);
-    allignObjectY((Object*)menu, gameState.titleScreen, ((SelectionWindowData*)menu->userData)->height, .5);
-    overviewScreenState.missionSelectionPanel->addObject(overviewScreenState.missionSelectionPanel, (Object*)menu);
+    overviewScreenState.missionSelectionMenu = createSelectionWindow(items, keys, true, true, callbacks, missionSelectionChanged, false, 4, missionPanelMenuWidth, missionPanelWidth - missionPanelMenuWidth, 0, 3, gameState.engine);
+    missionSelectionChanged(0); // call to initialize the info text box to the first selection
+    allignObjectY((Object*)overviewScreenState.missionSelectionMenu, gameState.titleScreen, ((SelectionWindowData*)overviewScreenState.missionSelectionMenu->userData)->height, .5);
+    overviewScreenState.missionSelectionPanel->addObject(overviewScreenState.missionSelectionPanel, (Object*)overviewScreenState.missionSelectionMenu);
     
     // Register menu to receive events from missionSelectionPanel (not mainPanel, since we want to change the focus during mission selection)
     EventTypeMask eventMask;
     eventMask.mask = 0;
     eventMask.values.keyboardEvent = true;
-    overviewScreenState.missionSelectionPanel->registerEventListener(overviewScreenState.missionSelectionPanel, eventMask, menu->objectProperties.handleEvent, (Object*)menu);
+    overviewScreenState.missionSelectionPanel->registerEventListener(overviewScreenState.missionSelectionPanel, eventMask, overviewScreenState.missionSelectionMenu->objectProperties.handleEvent, (Object*)overviewScreenState.missionSelectionMenu);
 
     /* Save listener list */
     gameState.overviewScreenListenerList = gameState.engine->mainPanel->listeners;
@@ -181,6 +198,23 @@ void overviewScreenHandleEvents(Object* overviewScreen, Event* event){
     }
 }
 
+/* Called when the selected mission is changed */
+void missionSelectionChanged(int index){
+    /* Change the text in the info window */
+    char missionInfo[256];
+    if (index != 3){
+        snprintf(missionInfo, 255, 
+                "------MISSION--------\n"
+                "%s",
+                gameState.missions[gameState.currentSector][index].missionTitle);
+    } else {
+        snprintf(missionInfo, 255, 
+                "------SKIP SECTOR----\n"
+                "You will not receive any benefits from this sector. If you skip too many sectors you will lose the game.");
+    }
+    updateTextBox(overviewScreenState.missionSelectionInfo, missionInfo, 0);
+}
+
 /* Called when a mission is selected from the mission selection menu */
 void missionSelected(int index){
     /* Remove mission selection menu from screen */
@@ -189,10 +223,44 @@ void missionSelected(int index){
     /* Change active panel back to mainPanel */
     gameState.engine->activePanel = gameState.engine->mainPanel;
 
+    /* Get selected mission */
+    Mission* selectedMission = &gameState.missions[gameState.currentSector][index];
+
+    /* If the 'mission' is a store, go to the store screen, otherwise go to the mission screen */
+    switch (selectedMission->missionType){
+    case MISSION_BASE:
+        break;
+    case MISSION_STATION:
+        gameState.credits += 10;
+        break;
+    case MISSION_STORE:
+        break;
+    }
+
     /* Set sector status to complete, move to next sector */
     gameState.locations[gameState.currentSector] = LOCATION_COMPLETED;
     overviewScreenState.locationStatusChanged[gameState.currentSector] = true;
     gameState.currentSector++;
+    if (gameState.currentSector >= 9){
+        // finished last sector, show win/lose screen based on how many sectors are green/red
+        int sectorsWon = 0;
+        int sectorsLost = 0;
+        for (int sector = 0; sector < 9; sector++){
+            if (gameState.locations[sector] == LOCATION_COMPLETED){
+                sectorsWon++;
+            }else{
+                sectorsLost++;
+            }
+        }
+        if (sectorsWon > sectorsLost){
+            // you win
+            gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.endGameScreen);
+        } else {
+            // you lose
+            updateTextBox(overviewScreenState.endText, "You Lose!", 0);
+            gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.endGameScreen);
+        }
+    }
     gameState.locations[gameState.currentSector] = LOCATION_CURRENT;
     overviewScreenState.locationStatusChanged[gameState.currentSector] = true;
 
@@ -216,6 +284,26 @@ void sectorSkipped(){
     gameState.locations[gameState.currentSector] = LOCATION_SKIPPED;
     overviewScreenState.locationStatusChanged[gameState.currentSector] = true;
     gameState.currentSector++;
+    if (gameState.currentSector >= 9){
+        // finished last sector, show win/lose screen based on how many sectors are green/red
+        int sectorsWon = 0;
+        int sectorsLost = 0;
+        for (int sector = 0; sector < 9; sector++){
+            if (gameState.locations[sector] == LOCATION_COMPLETED){
+                sectorsWon++;
+            }else{
+                sectorsLost++;
+            }
+        }
+        if (sectorsWon > sectorsLost){
+            // you win
+            gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.endGameScreen);
+        } else {
+            // you lose
+            updateTextBox(overviewScreenState.endText, "You Lose!", 0);
+            gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.endGameScreen);
+        }
+    }
     gameState.locations[gameState.currentSector] = LOCATION_CURRENT;
     overviewScreenState.locationStatusChanged[gameState.currentSector] = true;
     

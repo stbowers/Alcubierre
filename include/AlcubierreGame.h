@@ -10,6 +10,17 @@
 
 #include <engine.h>
 
+#define MAX_MISSION_TITLE 30
+/* Structs for various game state objects */
+typedef struct Mission_s{
+    char missionTitle[MAX_MISSION_TITLE];
+    enum {
+        MISSION_BASE,
+        MISSION_STATION,
+        MISSION_STORE,
+    } missionType;
+} Mission;
+
 // Stores the game state - used by AlcubierreGame.c not by engine
 typedef struct AlcubierreGameState_s{
     Engine* engine;
@@ -17,15 +28,21 @@ typedef struct AlcubierreGameState_s{
     // used to send a signal to the main thread that the game should exit now
     bool exit;
 
-    /* Screens */
+    /* Screens - each has its own .h and .c file in the game directory */
     Panel* titleScreen;
     Panel* overviewScreen;
+    Panel* baseMissionScreen;
+    Panel* stationMissionScreen;
+    Panel* storeScreen;
 
     /* Listener lists - overwrite lister list for the active panel
      * allowing our game to easily switch modes
      */
     EventListener* titleScreenListenerList;
     EventListener* overviewScreenListenerList;
+    EventListener* baseMissionScreenListenerList;
+    EventListener* stationMissionScreenListenerList;
+    EventListener* storeScreenListenerList;
 
     /* Game State */
     /* There are 15 difficulty levels; 3 for easy, 3 for medium, 3 for hard, and 6 are above hard, but can't be chosen as a starting difficulty
@@ -49,6 +66,19 @@ typedef struct AlcubierreGameState_s{
         LOCATION_SKIPPED,
     } locations[9];
     int currentSector;
+
+    /* Stores the missions available at each location
+     * - three missions for every sector, 9 sectors -
+     * [sector][mission]
+     */
+    Mission missions[9][3];
+
+    /* Stats */
+    int shipHealth;
+    int fleetStrength;
+    int alienStrenth;
+    int credits;
+
 } AlcubierreGameState;
 extern AlcubierreGameState gameState;
 extern ThreadLock_t gameStateLock;

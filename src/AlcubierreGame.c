@@ -8,6 +8,9 @@
 #include <AlcubierreGame.h>
 #include <game/OverviewScreen.h>
 #include <game/TitleScreen.h>
+#include <game/BaseMissionScreen.h>
+#include <game/StationMissionScreen.h>
+#include <game/StoreScreen.h>
 #include <objects/sprites.h>
 #include <objects/ui.h>
 #include <stdlib.h>
@@ -58,6 +61,9 @@ void startGame(Engine* engine, bool skipIntro){
     /* Build screens */
     buildTitleScreen();
     buildOverviewScreen();
+    buildBaseMissionScreen();
+    buildStationMissionScreen();
+    buildStoreScreen();
 
     /* Run the intro sequence */
     if (!skipIntro){
@@ -100,6 +106,22 @@ void initializeWorldState(){
     
     /* We start of in sector 0 */
     gameState.currentSector = 0;
+
+    /* Create missions */
+    for (int sector = 0; sector < 9; sector++){
+        for (int mission = 0; mission < 3; mission++){
+            strcpy(gameState.missions[sector][mission].missionTitle, "Assault Alien Base");
+            gameState.missions[sector][mission].missionType = MISSION_BASE;
+        }
+    }
+    strcpy(gameState.missions[0][0].missionTitle, "Scout Alien Solar Station");
+    strcpy(gameState.missions[0][2].missionTitle, "Protect Resistance Base");
+
+    /* Basic stats */
+    gameState.shipHealth = 100;
+    gameState.fleetStrength = 25;
+    gameState.alienStrenth = 75;
+    gameState.credits = 0;
 }
 
 void runIntroSequence(){

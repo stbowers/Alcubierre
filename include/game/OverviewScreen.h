@@ -13,7 +13,14 @@
 
 typedef struct OverviewScreenState_s{
     Panel* missionSelectionPanel;
+    Panel* endGameScreen;
+
+    /* Mission selection panel objects */
     GameObject* missionSelectionMenu;
+    GameObject* missionSelectionInfo;
+
+    /* End screen objects */
+    GameObject* endText;
 
     GameObject* locationMarkers[9];
     // true for any locations that need to be updated when updateOverviewScreen is called
@@ -35,6 +42,7 @@ void updateOverviewScreen();
 void overviewScreenHandleEvents(Object* overviewScreen, Event* event);
 
 /* Sector mission selection callbacks */
+void missionSelectionChanged(int index);
 void missionSelected(int index);
 void sectorSkipped();
 
