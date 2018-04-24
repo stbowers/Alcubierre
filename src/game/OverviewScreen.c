@@ -270,6 +270,10 @@ void missionSelected(int index){
 
     /* Update overview screen */
     updateOverviewScreen();
+
+	/* Move to base mission screen */
+	gameState.engine->mainPanel->childrenList = gameState.baseMissionScreen;
+	gameState.engine->mainPanel->listeners = gameState.baseMissionScreenListenerList;
 }
 
 /* Called when the sector is skipped from the selection menu */
