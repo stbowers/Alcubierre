@@ -66,6 +66,23 @@ GameObject* createTextBox(const char* text, attr_t attributes, bool bordered, in
 void destroyTextBox(GameObject* textBox);
 
 // changes the text in the text box
-void updateTextBox(GameObject* textBox, const char* newText, attr_t attributes);
+void updateTextBox(GameObject* textBox, const char* newText, attr_t attributes, bool center);
+
+
+
+/* Progress bar */
+// Label: [###----]
+typedef struct ProgressBarData_s{
+    char* label;
+    float percentage;
+    CursesChar* buffer;
+    int bufferWidth, bufferHeight;
+} ProgressBarData;
+
+GameObject* createProgressBar(const char* label, float percentage, attr_t attributes, int width, int x, int y, int z, Engine* engine);
+void destroyProgressBar(GameObject* progressBar);
+
+// updates the percentage for the progress bar
+void updateProgressBar(GameObject* progressBar, float newPercentage, attr_t attributes);
 
 #endif //__UI_H_

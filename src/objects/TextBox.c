@@ -95,7 +95,7 @@ GameObject* createTextBox(const char* text, attr_t attributes, bool bordered, in
     return newObject;
 }
 
-void updateTextBox(GameObject* textBox, const char* newText, attr_t attributes){
+void updateTextBox(GameObject* textBox, const char* newText, attr_t attributes, bool center){
     TextBoxData* data = ((TextBoxData*)textBox->userData);
     
     /* Update data fields */
@@ -144,7 +144,12 @@ void updateTextBox(GameObject* textBox, const char* newText, attr_t attributes){
     }
 
     /* Print text to buffer */
-    int startX = (data->bordered)? 1: 0;
+    int startX;
+    if (!center){
+        startX = (data->bordered)? 1: 0;
+    } else {
+        startX = (data->bufferWidth - strlen(data->text)) / 2.0f;
+    }
     int startY = (data->bordered)? 1: 0;
     bufferPrintf(data->buffer, data->textWidth, data->bufferHeight, data->textHeight, startX, startY, data->attributes, "%s", data->text);
 

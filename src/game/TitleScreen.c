@@ -66,7 +66,7 @@ void buildTitleScreen(){
     EventTypeMask eventTypes;
     eventTypes.mask = 0;
     eventTypes.values.keyboardEvent = true;
-    titleScreenState.difficultySelectPanel->registerEventListener(titleScreenState.difficultySelectPanel, eventTypes, titleScreenState.difficultySelectMenu->objectProperties.handleEvent, (Object*)titleScreenState.difficultySelectMenu);
+    titleScreenState.difficultySelectPanel->registerEventListener(titleScreenState.difficultySelectPanel, eventTypes, (Object*)titleScreenState.difficultySelectMenu);
 
 
 
@@ -170,16 +170,16 @@ void exitCallback(){
 void difficultyChangedCallback(int index){
     switch (index){
     case 0:
-        updateTextBox(titleScreenState.difficultyInfoTextBox, easyDescription, 0);
+        updateTextBox(titleScreenState.difficultyInfoTextBox, easyDescription, 0, false);
         break;
     case 1:
-        updateTextBox(titleScreenState.difficultyInfoTextBox, mediumDescription, 0);
+        updateTextBox(titleScreenState.difficultyInfoTextBox, mediumDescription, 0, false);
         break;
     case 2:
-        updateTextBox(titleScreenState.difficultyInfoTextBox, hardDescription, 0);
+        updateTextBox(titleScreenState.difficultyInfoTextBox, hardDescription, 0, false);
         break;
     case 3:
-        updateTextBox(titleScreenState.difficultyInfoTextBox, "Go back to main menu", 0);
+        updateTextBox(titleScreenState.difficultyInfoTextBox, "Go back to main menu", 0, false);
         break;
     }
 }

@@ -46,6 +46,31 @@
 },
 {
   "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/objects/AllyBase.c.o   -c /opt/development/c/cs2060/final/src/objects/AllyBase.c",
+  "file": "/opt/development/c/cs2060/final/src/objects/AllyBase.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/objects/EnemyBase.c.o   -c /opt/development/c/cs2060/final/src/objects/EnemyBase.c",
+  "file": "/opt/development/c/cs2060/final/src/objects/EnemyBase.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/objects/ProgressBar.c.o   -c /opt/development/c/cs2060/final/src/objects/ProgressBar.c",
+  "file": "/opt/development/c/cs2060/final/src/objects/ProgressBar.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/objects/Room.c.o   -c /opt/development/c/cs2060/final/src/objects/Room.c",
+  "file": "/opt/development/c/cs2060/final/src/objects/Room.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
+  "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/objects/Ship.c.o   -c /opt/development/c/cs2060/final/src/objects/Ship.c",
+  "file": "/opt/development/c/cs2060/final/src/objects/Ship.c"
+},
+{
+  "directory": "/opt/development/c/cs2060/final/bin",
   "command": "/usr/bin/cc -D__LINUX__ -D__UNIX__ -I/opt/development/c/cs2060/final/include  -Wall -g -lm -finput-charset=UTF-8 -pthread -O0   -o CMakeFiles/Alcubierre.dir/src/objects/TextBox.c.o   -c /opt/development/c/cs2060/final/src/objects/TextBox.c",
   "file": "/opt/development/c/cs2060/final/src/objects/TextBox.c"
 },

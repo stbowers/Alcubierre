@@ -6,6 +6,7 @@
  * Licensed under the MIT License (see LICENSE.txt)
  */
 #include <game/OverviewScreen.h>
+#include <game/BaseMissionScreen.h>
 #include <AlcubierreGame.h>
 #include <engine.h>
 #include <xpFunctions.h>
@@ -32,7 +33,7 @@ void buildOverviewScreen(){
     EventTypeMask eventTypes;
     eventTypes.mask = 0;
     eventTypes.values.keyboardEvent = true;
-    gameState.engine->mainPanel->registerEventListener(gameState.engine->mainPanel, eventTypes, overviewScreenHandleEvents, (Object*)gameState.overviewScreen);
+    gameState.engine->mainPanel->registerEventListener(gameState.engine->mainPanel, eventTypes, (Object*)gameState.overviewScreen);
 
     /* Load basic overview texture */
     XPFile* overviewTexture = getXPFile("./assets/Overview.xp");
@@ -102,7 +103,7 @@ void buildOverviewScreen(){
     EventTypeMask eventMask;
     eventMask.mask = 0;
     eventMask.values.keyboardEvent = true;
-    overviewScreenState.missionSelectionPanel->registerEventListener(overviewScreenState.missionSelectionPanel, eventMask, overviewScreenState.missionSelectionMenu->objectProperties.handleEvent, (Object*)overviewScreenState.missionSelectionMenu);
+    overviewScreenState.missionSelectionPanel->registerEventListener(overviewScreenState.missionSelectionPanel, eventMask, (Object*)overviewScreenState.missionSelectionMenu);
 
     /* Save listener list */
     gameState.overviewScreenListenerList = gameState.engine->mainPanel->listeners;
@@ -212,7 +213,7 @@ void missionSelectionChanged(int index){
                 "------SKIP SECTOR----\n"
                 "You will not receive any benefits from this sector. If you skip too many sectors you will lose the game.");
     }
-    updateTextBox(overviewScreenState.missionSelectionInfo, missionInfo, 0);
+    updateTextBox(overviewScreenState.missionSelectionInfo, missionInfo, 0, false);
 }
 
 /* Called when a mission is selected from the mission selection menu */
@@ -237,6 +238,9 @@ void missionSelected(int index){
         break;
     }
 
+    /* Update mission screen before moving to next sector */
+    updateBaseMissionScreen(&gameState.missions[gameState.currentSector][index]);
+
     /* Set sector status to complete, move to next sector */
     gameState.locations[gameState.currentSector] = LOCATION_COMPLETED;
     overviewScreenState.locationStatusChanged[gameState.currentSector] = true;
@@ -257,7 +261,7 @@ void missionSelected(int index){
             gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.endGameScreen);
         } else {
             // you lose
-            updateTextBox(overviewScreenState.endText, "You Lose!", 0);
+            updateTextBox(overviewScreenState.endText, "You Lose!", 0, false);
             gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.endGameScreen);
         }
     }
@@ -272,7 +276,7 @@ void missionSelected(int index){
     updateOverviewScreen();
 
 	/* Move to base mission screen */
-	gameState.engine->mainPanel->childrenList = gameState.baseMissionScreen;
+	gameState.engine->mainPanel->childrenList = (Object*)gameState.baseMissionScreen;
 	gameState.engine->mainPanel->listeners = gameState.baseMissionScreenListenerList;
 }
 
@@ -304,7 +308,7 @@ void sectorSkipped(){
             gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.endGameScreen);
         } else {
             // you lose
-            updateTextBox(overviewScreenState.endText, "You Lose!", 0);
+            updateTextBox(overviewScreenState.endText, "You Lose!", 0, false);
             gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.endGameScreen);
         }
     }

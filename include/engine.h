@@ -30,6 +30,9 @@
 #include <threads.h>
 #include <stdint.h>
 
+/* Global variables */
+extern int MS_PER_FRAME; // determines framerate of engine
+
 /* Data Structures */
 struct Panel_s;
 
@@ -91,7 +94,6 @@ typedef struct Object_s{
 
 typedef struct EventListener_s{
     EventTypeMask mask;
-    void (*handleEvent)(Object* self, Event* event);
     Object* listener;
     struct EventListener_s* next;
 } EventListener;
@@ -110,7 +112,7 @@ typedef struct Panel_s{
     /* Event delegation */
     EventListener* listeners;
     EventListener** nextListener;
-    void (*registerEventListener)(struct Panel_s* self, EventTypeMask mask, void (*handleEvent)(Object* self, Event* event), Object* listener);
+    void (*registerEventListener)(struct Panel_s* self, EventTypeMask mask, Object* listener);
 
     /* Custom window functions */
     /* Adds an object to this panel
@@ -182,14 +184,6 @@ typedef struct Engine_s{
         bool exit;
         /* End of dataLock resources */
     } eventThreadData;
-
-    /* The game thread runs continously on a tickrate defined by MS_PER_TICK
-     * which determines how long a tick should last. Assuming MS_PER_TICK
-     * is 10, there should be 100 ticks per second. The game thread tries
-     * to keep its tickrate constant by only sleeping until its total loop
-     * time is MS_PER_TICK, rather than sleeping for MS_PER_TICK every loop.
-     */
-    Thread_t gameThread;
 
     /* The render thread runs continously at a framerate defined by
      * MS_PER_FRAME, which determines how long a frame should last.

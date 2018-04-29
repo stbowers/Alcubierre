@@ -20,9 +20,7 @@
 #include <stdarg.h>
 #include <math.h>
 
-#define MS_PER_TICK 10 // how many milliseconds corrospond to one tick - tickrate (10ms/tick ~= 100 ticks per second)
-// There is a weird bug with the render thread timer where it runs at exactly half the framerate expected from MS_PER_FRAME - so the value below should be halved
-#define MS_PER_FRAME 10 // how many milliseconds corrospond to one frame - framerate
+int MS_PER_FRAME = 10; // how many milliseconds corrospond to one frame - framerate
 
 /* Engine functions */
 void defaultEngineHandleEvent(Engine* self, Event* event);

@@ -29,16 +29,22 @@ wchar_t CP437_UTF8_CODE[CP437_NUMCHARS];
  * be filled out programatically, this bool keeps track
  * of wether or not the table has been initialized yet.
  * If false, the data in the array will be meaningless.
+ * The table is initialized and this bool set to true
+ * on the first call to getUTF8CharForCP437Value()
  */
 bool CP437_UTF8_CODE_INITIALIZED = false;
 
 /* Given a CP437 ascii value, returns the utf8 unicode
  * character for that value.
+ *
+ * Data provided by Wikipedia (https://en.wikipedia.org/w/index.php?title=Code_page_437&oldid=565442465#Characters)
  */
 wchar_t getUTF8CharForCP437Value(int value){
     /* Make sure conversion table is initialized */
     if (!CP437_UTF8_CODE_INITIALIZED){
-        /* values 0-127 have the same unicode vaule */
+        /* values 0-127 have the same unicode vaule for
+         * drawable characters
+         */
         for (int i = 0; i < 128; i++){
             CP437_UTF8_CODE[i] = (char)i;
         }
@@ -80,9 +86,8 @@ wchar_t getUTF8CharForCP437Value(int value){
         CP437_UTF8_CODE[127] = L'\u2302'; // ⌂
         
         /* The rest of the chars (128-256) are set to ?
-         * to indicate that the proper value hasn't been
-         * assigned - the ? will be overwritten by other
-         * assignments.
+         * as a default value, to make it visually clear
+         * a character is missing in the table
          */
         for (int i = 0; i < 128; i++){
             CP437_UTF8_CODE[i+128] = '?';
@@ -254,7 +259,14 @@ void drawLayerToBuffer(XPLayer* layer, CursesChar* buffer, bool transparent, Eng
             //wadd_wch(win, &cursesChar);
             if ((xpChar->br == 255 && xpChar->bg == 0 && xpChar->bb == 255)
                 || (xpChar->value == 0)){
-                // if the background is (255, 0, 255) or the character is null that's REXPaint's signal that the char is transparent, so just skip it
+                // if the background is (255, 0, 255) or the character is null that's REXPaint's signal that the char is transparent
+                if (transparent){
+                    // don't overwrite chars below us, so do nothing
+                } else {
+                    // write transparent char
+                    charAt->attributes = 0;
+                    charAt->character = L'\u00A0';
+                }
             } else {
                 // copy char data to the buffer
                 *charAt = cursesChar;

@@ -14,7 +14,7 @@
 void defaultAddObject(Panel* self, Object* newObject);
 void defaultRemoveObject(Panel* self, Object* toRemove);
 void defaultDrawPanel(Object* self, CursesChar* buffer);
-void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, Event* event), Object* listener);
+void defaultPanelAddListener(Panel* self, EventTypeMask mask, Object* listener);
 void defaultPanelHandleEvent(Object* self, Event* event);
 
 /* engine.h impementation */
@@ -154,7 +154,7 @@ void defaultDrawPanel(Object* self, CursesChar* buffer){
     }
 }
 
-void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent)(Object* self, Event* event), Object* listener){
+void defaultPanelAddListener(Panel* self, EventTypeMask mask, Object* listener){
 	/* NOTE: We own the memory on the heap for the event listeners list, since we call malloc here. However during the game
 	 * the event listener list is swapped in and out to change state. When that happens, whoever switches the list implicitly
 	 * takes ownership of the memory for the old list, and gives us control of the memory for the new list. I.E. we always clean
@@ -163,7 +163,6 @@ void defaultPanelAddListener(Panel* self, EventTypeMask mask, void (*handleEvent
 	 */
     *self->nextListener = (EventListener*) malloc(sizeof(EventListener));
     (*self->nextListener)->mask = mask;
-    (*self->nextListener)->handleEvent = handleEvent;
     (*self->nextListener)->listener = listener;
     (*self->nextListener)->next = NULL;
     
@@ -175,7 +174,7 @@ void defaultPanelHandleEvent(Object* self, Event* event){
     EventListener* current = ((Panel*)self)->listeners;
     while (current != NULL){
         if (event->eventType.mask & current->mask.mask){
-            current->handleEvent(current->listener, event);
+            current->listener->handleEvent(current->listener, event);
         }
 
         current = current->next;

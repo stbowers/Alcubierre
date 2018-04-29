@@ -98,7 +98,7 @@ GameObject* createSelectionWindow(char** list, char* keys, bool bordered, bool a
         EventTypeMask typeMask;
         typeMask.mask = 0; // initialize mask - set all feilds to 0
         typeMask.values.keyboardEvent = true; // we're interested in keyboard events
-        engine->mainPanel->registerEventListener(engine->mainPanel, typeMask, selectionWindowHandleEvents, (Object*)newObject);
+        engine->mainPanel->registerEventListener(engine->mainPanel, typeMask, (Object*)newObject);
     }
 
     return newObject;

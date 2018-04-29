@@ -54,10 +54,24 @@ int main(int argc, char* argv[]){
 
     /* Run the game */
     // if the program is run with --skipintro, skip the intro sequence (speeds up debugging the actual game)
+    // if the program is run with --unlockfps, set MS_PER_FRAME to 0, which makes the game render at it's maximum possible fps
     bool skipIntro = false;
-    if (argc > 1 && (strncmp(argv[1], "--skipintro", 11) == 0)){
-        skipIntro = true;
+    bool unlockFPS = false;
+
+    for (int i = 1; i < argc; i++){
+        // loop through args
+        if ((strncmp(argv[i], "--skipintro", 11) == 0)){
+            skipIntro = true;
+        } else if ((strncmp(argv[i], "--unlockfps", 11) == 0)){
+            unlockFPS = true;
+        }
     }
+
+    // set MS_PER_FRAME if unlockFPS is true
+    if (unlockFPS){
+        MS_PER_FRAME = 0;
+    }
+
     // call to startGame in AlcubierreGame.c
     startGame(engine, skipIntro);
     
@@ -66,6 +80,7 @@ int main(int argc, char* argv[]){
      */
     timeout(0); // don't block on getch()
     int input;
+    int lastUpdate = getTimems();
     while ((input = getch_safe(engine)) != KEY_F(1)){
         lockThreadLock(&gameStateLock);
         if (gameState.exit){
@@ -85,6 +100,17 @@ int main(int argc, char* argv[]){
             engine->handleEvent(engine, keyEvent);
         }
 
+        // create a timer event 
+        Event* timeEvent = (Event*) malloc(sizeof(Event));
+        timeEvent->eventType.mask = 0;
+        timeEvent->eventType.values.timerEvent = true;
+        timeEvent->eventData = (void*)(uintptr_t)(getTimems() - lastUpdate); // data for time event is the time in ms since the last timer event
+        lastUpdate = getTimems();
+        timeEvent->next = NULL;
+
+        // send event
+        engine->handleEvent(engine, timeEvent);
+
         // Sleep so we don't use too much cpu for the main thread
         sleepms(10);
     }
@@ -95,6 +121,7 @@ int main(int argc, char* argv[]){
     return 0;
 }
 
+// Thread safe getch()
 int getch_safe(Engine* engine){
     lockThreadLock(&engine->renderThreadData.drawLock);
     int ch = wgetch(engine->stdscr);
