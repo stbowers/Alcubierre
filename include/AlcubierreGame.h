@@ -34,6 +34,7 @@ typedef struct AlcubierreGameState_s{
     Panel* baseMissionScreen;
     Panel* stationMissionScreen;
     Panel* storeScreen;
+    Panel* gameOverScreen;
 
     /* Listener lists - overwrite lister list for the active panel
      * allowing our game to easily switch modes
@@ -43,6 +44,7 @@ typedef struct AlcubierreGameState_s{
     EventListener* baseMissionScreenListenerList;
     EventListener* stationMissionScreenListenerList;
     EventListener* storeScreenListenerList;
+    EventListener* gameOverScreenListenerList;
 
     /* Game State */
     /* There are 15 difficulty levels; 3 for easy, 3 for medium, 3 for hard, and 6 are above hard, but can't be chosen as a starting difficulty

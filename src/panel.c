@@ -107,7 +107,14 @@ void defaultAddObject(Panel* self, Object* newObject){
     
     /* Place newObject before current */
     Object* last = current->previous;
-    last->next = newObject;
+    // if current was not the first node (last != NULL), set last's next pointer to the new object
+    if (last != NULL){
+        last->next = newObject;
+    } else {
+        // if current was the first node, we need to reset the head to the new node
+        self->childrenList = newObject;
+    }
+    // insert new object before current
     current->previous = newObject;
     newObject->previous = last;
     newObject->next = current;

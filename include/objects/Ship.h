@@ -33,6 +33,8 @@ typedef struct ShipData_s{
     int pilotPower;
 
     float engineCharge;
+    float weapons1Charge;
+    float weapons2Charge;
 } ShipData;
 
 GameObject* createPlayerShip(int x, int y, int z, Engine* engine);

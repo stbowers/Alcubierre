@@ -16,6 +16,9 @@
 typedef struct BaseMissionScreenState_s{
     GameObject* backgroundTexture;
 
+    // info screen
+    GameObject* infoScreen;
+
     // side screen
     GameObject* objectivesTextBox;
 
@@ -66,6 +69,8 @@ typedef struct BaseMissionScreenState_s{
 
     // Enemy Status
     GameObject* enemyHealthProgressBar;
+    GameObject* enemyWeaponsProgressBar;
+    GameObject* alienStrengthProgressBar;
 
     // Targets
     RoomData* playerWeaponsTarget;
@@ -83,6 +88,7 @@ void updateBaseMissionScreen();
 void baseMissionScreenHandleEvents(Object* screen, Event* event);
 // secondary listeners for different modes (paused, selection, etc)
 void baseMissionScreenHandleEventsPaused(Object* screen, Event* event);
+void baseMissionScreenHandleEventsInfoScreen(Object* screen, Event* event);
 void baseMissionScreenHandleEventsTargetSelectionWeapons(Object* screen, Event* event);
 void baseMissionScreenHandleEventsTargetSelectionPersonel(Object* screen, Event* event);
 

@@ -17,6 +17,7 @@ ThreadLock_t titleScreenStateLock;
 const char* easyDescription = "Easy: For players new to the genere of video\n    games with any difficulty";
 const char* mediumDescription = "Medium: For player who have some skill, but are\n    too scared to use hard difficulty";
 const char* hardDescription = "Hard: For masochistic players who want to suffer\n    at the hand of the random number generator";
+const char* demoDescription = "Demo: Easy difficulty with some modifications to make game faster for demos";
 
 void buildTitleScreen(){
     /* Remove listeners and reset new listener pointer */
@@ -55,9 +56,9 @@ void buildTitleScreen(){
     titleScreenState.difficultySelectPanel->addObject(titleScreenState.difficultySelectPanel, (Object*)titleScreenState.difficultyInfoTextBox);
 
     // Create difficulty selection menu
-    char* difficulties[] = {"(E) Easy", "(M) Medium", "(H) Hard", "(B) Back"};
-    char difficultyKeys[] = {'e', 'm', 'h', 'b'};
-    pfn_SelectionCallback difficultyCallbacks[] = {difficultyChosenCallback, difficultyChosenCallback, difficultyChosenCallback, difficultyBackCallback};
+    char* difficulties[] = {"(E) Easy", "(M) Medium", "(H) Hard", "(D) Demo", "(B) Back"};
+    char difficultyKeys[] = {'e', 'm', 'h', 'd', 'b'};
+    pfn_SelectionCallback difficultyCallbacks[] = {difficultyChosenCallback, difficultyChosenCallback, difficultyChosenCallback, difficultyChosenCallback, difficultyBackCallback};
     titleScreenState.difficultySelectMenu = createSelectionWindow(difficulties, difficultyKeys, true, true, difficultyCallbacks, difficultyChangedCallback, false, 4, 0, 0, difficultySelectionHeight-6, 1, gameState.engine);
     allignObjectX((Object*)titleScreenState.difficultySelectMenu, titleScreenState.difficultySelectPanel, ((SelectionWindowData*)titleScreenState.difficultySelectMenu->userData)->width, .5);
     titleScreenState.difficultySelectPanel->addObject(titleScreenState.difficultySelectPanel, (Object*)titleScreenState.difficultySelectMenu);
@@ -179,17 +180,25 @@ void difficultyChangedCallback(int index){
         updateTextBox(titleScreenState.difficultyInfoTextBox, hardDescription, 0, false);
         break;
     case 3:
+        updateTextBox(titleScreenState.difficultyInfoTextBox, demoDescription, 0, false);
+        break;
+    case 4:
         updateTextBox(titleScreenState.difficultyInfoTextBox, "Go back to main menu", 0, false);
         break;
     }
 }
 
 void difficultyChosenCallback(int index){
-    // index: 0 = easy, 1 = medium, 2 = hard
+    // index: 0 = easy, 1 = medium, 2 = hard, 3 = demo
     // starting difficulty: easy: 1, medium: 4, hard: 7
     
     /* Set difficulty */
-    gameState.difficulty = 1 + (index * 3);
+    // demo difficulty (index 4) sets difficulty to 0
+    if (index != 3){
+        gameState.difficulty = 1 + (index * 3);
+    } else {
+        gameState.difficulty = 0;
+    }
 
     /* Reset active panel to be the main panel */
     gameState.engine->activePanel = gameState.engine->mainPanel;

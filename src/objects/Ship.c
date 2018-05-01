@@ -35,7 +35,7 @@ GameObject* createPlayerShip(int x, int y, int z, Engine* engine){
     data->engineCharge = 0;
 
     // load ship texture
-    data->texture = getXPFile("./assets/PlayerShip.xp");
+    data->texture = getXPFile("./assets/Alcubierre.xp");
 
     // set up buffer
     data->bufferWidth = data->texture->layers[0].width;

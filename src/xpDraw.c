@@ -228,6 +228,7 @@ wchar_t getUTF8CharForCP437Value(int value){
         CP437_UTF8_CODE[252] = L'\u207F'; // ⁿ
         CP437_UTF8_CODE[253] = L'\u00B2'; // ²
         CP437_UTF8_CODE[254] = L'\u25A0'; // ■
+        CP437_UTF8_CODE[255] = L'\u25A1'; // □
         
         /* set init bool to true */
         CP437_UTF8_CODE_INITIALIZED = true;

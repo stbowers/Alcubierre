@@ -44,53 +44,13 @@ GameObject* createTextBox(const char* text, attr_t attributes, bool bordered, in
     // if bordered more width & height will be reserved for the border, so decrease text width & height
     if (bordered){
         data->textWidth -= 2;
-        data->textHeight -=2;
+        data->textHeight -= 2;
     }
     
     data->buffer = (CursesChar*) malloc(sizeof(CursesChar) * data->bufferWidth * data->bufferHeight);
 
-    // Fill buffer with either transparency if not bordered, or a border and spaces if bordered
-    for (int x = 0; x < data->bufferWidth; x++){
-        for (int y = 0; y < data->bufferHeight; y++){
-            CursesChar* charAt = &data->buffer[(x * data->bufferHeight) + y];
-
-            // set char
-            if (bordered){
-                charAt->attributes = 0;
-                if (x == 0 && y == 0){
-                    // top left
-                    charAt->character = L'┌';
-                } else if (x == 0 && y == (data->bufferHeight-1)){
-                    // bottom left
-                    charAt->character = L'└';
-                } else if (x == (data->bufferWidth-1) && y == 0){
-                    // top right
-                    charAt->character = L'┐';
-                } else if (x == (data->bufferWidth-1) && y == (data->bufferHeight-1)){
-                    // bottom right
-                    charAt->character = L'┘';
-                } else if (x == 0 || x == (data->bufferWidth-1)){
-                    // sides
-                    charAt->character = L'│';
-                } else if (y == 0 || y == (data->bufferHeight-1)){
-                    // top & bottom
-                    charAt->character = L'─';
-                } else {
-                    // inside
-                    charAt->character = L' ';
-                }
-            } else {
-                // set transparent
-                charAt->attributes = 0;
-                charAt->character = L'\u00A0';
-            }
-        }
-    }
-
-    /* Print text to buffer */
-    int startX = (bordered)? 1: 0;
-    int startY = (bordered)? 1: 0;
-    bufferPrintf(data->buffer, width, data->bufferHeight, height, startX, startY, data->attributes, "%s", data->text);
+    // draw to buffer
+    updateTextBox(newObject, text, attributes, false);
 
     return newObject;
 }

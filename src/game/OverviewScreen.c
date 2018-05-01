@@ -43,6 +43,22 @@ void buildOverviewScreen(){
     centerObject((Object*)backgroundSprite, gameState.overviewScreen, overviewTexture->layers[0].width, overviewTexture->layers[0].height);
     gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)backgroundSprite);
 
+    /* Stats */
+    int statsWidth = 50;
+    int statsX = 77;
+    int statsY = 1;
+    overviewScreenState.shipHealthProgressBar = createProgressBar("", .33, 0, statsWidth, statsX, statsY, 2, gameState.engine);
+    gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.shipHealthProgressBar);
+    statsY += 2;
+    overviewScreenState.fleetStrengthProgressBar = createProgressBar("", .33, 0, statsWidth, statsX, statsY, 2, gameState.engine);
+    gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.fleetStrengthProgressBar);
+    statsY += 2;
+    overviewScreenState.alienStrengthProgressBar = createProgressBar("", .33, 0, statsWidth, statsX, statsY, 2, gameState.engine);
+    gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.alienStrengthProgressBar);
+    statsY += 2;
+    overviewScreenState.creditsTextBox = createTextBox("", 0, false, 6, 1, statsX + 44, statsY, 2, gameState.engine);
+    gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.creditsTextBox);
+
     /* Initialize locationMarkers array */
     for (int i = 0; i < 9; i++){
         overviewScreenState.locationMarkers[i] = NULL;
@@ -59,7 +75,7 @@ void buildOverviewScreen(){
 
     // The starting x coordinate for location markers
     // This is kinda a magic variable, tweaked until it looks right
-    overviewScreenState.locationMarkerStartX = backgroundSprite->objectProperties.x + 8;
+    overviewScreenState.locationMarkerStartX = backgroundSprite->objectProperties.x + 22;
     
     /* Update screen - draws objects that change depending on game state */
     // updateOverviewScreen() expects the current thread to not own the overviewScreenStateLock, so release it while calling the function
@@ -119,11 +135,22 @@ void buildOverviewScreen(){
 void updateOverviewScreen(){
     lockThreadLock(&overviewScreenStateLock);
 
+    /* Update stats */
+    updateProgressBar(overviewScreenState.shipHealthProgressBar, gameState.shipHealth / 100.0f, 0);
+    updateProgressBar(overviewScreenState.fleetStrengthProgressBar, gameState.fleetStrength / 100.0f, 0);
+    updateProgressBar(overviewScreenState.alienStrengthProgressBar, gameState.alienStrenth / 100.0f, 0);
+
+    char creditsText[6]; // tmp buffer for output of snprintf to format the credits with leading 0s
+    snprintf(creditsText, 6, "%05d", gameState.credits);
+    updateTextBox(overviewScreenState.creditsTextBox, creditsText, 0, false);
+
     /* Update location markers */
     // Get height and y location for each marker (same for all of them)
     int markerHeight = overviewScreenState.locationUnknownTexture->layers[0].height;
-    int markerY = (float)(gameState.overviewScreen->height - markerHeight) * (5.0f/8.0f);
+    int markerY = (float)(gameState.overviewScreen->height - markerHeight) * (3.0f/8.0f);
     int markerX = overviewScreenState.locationMarkerStartX;
+    int markerSpacingNormal = 20;
+    int markerSpacingLarge = 44;
 
     for (int i = 0; i < 9; i++){
         GameObject* currentMarker = overviewScreenState.locationMarkers[i];
@@ -138,19 +165,19 @@ void updateOverviewScreen(){
         if (updateMarker){
             switch (gameState.locations[i]){
             case LOCATION_UNKNOWN:
-                overviewScreenState.locationMarkers[i] = createXPSprite(overviewScreenState.locationUnknownTexture, markerX, markerY, 1, gameState.engine);
+                overviewScreenState.locationMarkers[i] = createXPSprite(overviewScreenState.locationUnknownTexture, markerX, markerY, 3, gameState.engine);
                 break;
             case LOCATION_CURRENT:
-                overviewScreenState.locationMarkers[i] = createAXPSprite(overviewScreenState.locationCurrentFrames, 2, 500, markerX, markerY, 1, gameState.engine);
+                overviewScreenState.locationMarkers[i] = createAXPSprite(overviewScreenState.locationCurrentFrames, 2, 500, markerX, markerY, 3, gameState.engine);
                 break;
             case LOCATION_COMPLETED:
-                overviewScreenState.locationMarkers[i] = createXPSprite(overviewScreenState.locationCompletedTexture, markerX, markerY, 1, gameState.engine);
+                overviewScreenState.locationMarkers[i] = createXPSprite(overviewScreenState.locationCompletedTexture, markerX, markerY, 3, gameState.engine);
                 break;
             case LOCATION_SKIPPED:
-                overviewScreenState.locationMarkers[i] = createXPSprite(overviewScreenState.locationSkippedTexture, markerX, markerY, 1, gameState.engine);
+                overviewScreenState.locationMarkers[i] = createXPSprite(overviewScreenState.locationSkippedTexture, markerX, markerY, 3, gameState.engine);
                 break;
             default:
-                overviewScreenState.locationMarkers[i] = createXPSprite(overviewScreenState.locationUnknownTexture, markerX, markerY, 1, gameState.engine);
+                overviewScreenState.locationMarkers[i] = createXPSprite(overviewScreenState.locationUnknownTexture, markerX, markerY, 3, gameState.engine);
                 break;
             }
 
@@ -168,7 +195,8 @@ void updateOverviewScreen(){
         }
 
         // move markerX up for every marker
-        markerX += ((i+1)%3)?12:18;
+        // if we're right before a multiple of 3 (first marker in new section), add a larger gap to accomidate the split between sections
+        markerX += ((i+1)%3)?markerSpacingNormal:markerSpacingLarge;
     }
     
     unlockThreadLock(&overviewScreenStateLock);
@@ -245,26 +273,6 @@ void missionSelected(int index){
     gameState.locations[gameState.currentSector] = LOCATION_COMPLETED;
     overviewScreenState.locationStatusChanged[gameState.currentSector] = true;
     gameState.currentSector++;
-    if (gameState.currentSector >= 9){
-        // finished last sector, show win/lose screen based on how many sectors are green/red
-        int sectorsWon = 0;
-        int sectorsLost = 0;
-        for (int sector = 0; sector < 9; sector++){
-            if (gameState.locations[sector] == LOCATION_COMPLETED){
-                sectorsWon++;
-            }else{
-                sectorsLost++;
-            }
-        }
-        if (sectorsWon > sectorsLost){
-            // you win
-            gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.endGameScreen);
-        } else {
-            // you lose
-            updateTextBox(overviewScreenState.endText, "You Lose!", 0, false);
-            gameState.overviewScreen->addObject(gameState.overviewScreen, (Object*)overviewScreenState.endGameScreen);
-        }
-    }
     gameState.locations[gameState.currentSector] = LOCATION_CURRENT;
     overviewScreenState.locationStatusChanged[gameState.currentSector] = true;
 

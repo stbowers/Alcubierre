@@ -30,6 +30,12 @@ typedef struct OverviewScreenState_s{
     XPFile* locationCurrentFrames[2];
     XPFile* locationCompletedTexture;
     XPFile* locationSkippedTexture;
+
+    // status bar objects
+    GameObject* shipHealthProgressBar;
+    GameObject* fleetStrengthProgressBar;
+    GameObject* alienStrengthProgressBar;
+    GameObject* creditsTextBox;
 } OverviewScreenState;
 extern OverviewScreenState overviewScreenState;
 extern ThreadLock_t overviewScreenStateLock;

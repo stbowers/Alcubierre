@@ -11,6 +11,7 @@
 #include <game/BaseMissionScreen.h>
 #include <game/StationMissionScreen.h>
 #include <game/StoreScreen.h>
+#include <game/GameOverScreen.h>
 #include <objects/sprites.h>
 #include <objects/ui.h>
 #include <stdlib.h>
@@ -28,8 +29,8 @@ ThreadLock_t gameStateLock;
  */
 const char* introText =
 	"-----ENCRYPTED COMMUNICATION FROM INTERPLANETARY RESISTANCE-----\n"
-    "Good evening, Recruit.\n\n"
-    "You have been promoted to Commander of the IRSS Alcubierre, our most advanced scout ship.\n\n"
+    "Good evening, Captain.\n\n"
+    "You have been promoted to Commander of the IRSS Alcubierre, our most advanced scout ship, and our only hope for defeating the Alien invaders.\n\n"
     "Your mission is to scout several sectors on the way to the outer edge of the solar system, laying down opportunities for the rest of our fleet to take a hold in those sectors.\n\n"
     "Your ship has been equipped with a new device which disrupts the enemy's shields. This will allow you to quickly deal large amounts of damage to critical systems, giving you the upper hand in battle.\n\n"
     "Do not become too reckless, however. The Alcubierre is our only ship outfitted with this shield weakening device. It will play a critical role in our final battle to take out the enemy's stargate at the edge of the Solar System.\n\n"
@@ -54,6 +55,8 @@ void startGame(Engine* engine, bool skipIntro){
     GameObject* loadingAnimation = createAXPSprite(loadingAnimationFrames, 4, 100, 0, 0, 1, engine);
     centerObject((Object*)loadingAnimation, engine->mainPanel, ((XPSpriteData*)loadingAnimation->userData)->textureData->width, ((XPSpriteData*)loadingAnimation->userData)->textureData->height);
     engine->mainPanel->childrenList = (Object*) loadingAnimation;
+    // run the loading animation for _at least_ half a second, because it makes the game feel more substantial, and I think the animation is kinda cool :)
+    sleepms(500);
 	
     /* Initialize world state */
     initializeWorldState();
@@ -64,6 +67,7 @@ void startGame(Engine* engine, bool skipIntro){
     buildBaseMissionScreen();
     buildStationMissionScreen();
     buildStoreScreen();
+    buildGameOverScreen();
 
     /* Run the intro sequence */
     if (!skipIntro){
@@ -119,8 +123,8 @@ void initializeWorldState(){
 
     /* Basic stats */
     gameState.shipHealth = 100;
-    gameState.fleetStrength = 25;
-    gameState.alienStrenth = 75;
+    gameState.fleetStrength = 10;
+    gameState.alienStrenth = 100;
     gameState.credits = 0;
 }
 
