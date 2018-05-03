@@ -1,14 +1,37 @@
-Alcubierre
-A roguelike programmed in C with the ncurses library.
+# Alcubierre
+A FTL-like video game programmed in C using the ncurses library
 
-For the final in CS 2060 - 003 (Spring 2018)
+Programmed for CS 2060, section 3, Spring 2018
 
-Works for macOS and Linux, haven't gotten Windows to work yet.
+University of Colorado at Colorado Springs
 
-Compiled with cmake (to make compiling on different systems easier)
-needs ncurses and panel libraries if not using cmake. On some linux systems may need ncursesw and panelw instead
+Licensed under the MIT License (LICENSE.txt)
 
-make sure the file Alcubbiere_Title.xp in assets folder is next to the executable when running
+## Building
+Use cmake to generate build files for your individual system. Works with Linux, macOS, and Windows
 
-Video of it working, since it's not working properly on all systems:
-https://youtu.be/iFjF5uHtOC8
+Linux:
+```
+> mkdir bin
+> cd bin
+> cmake ..
+> make
+```
+
+macOS:
+```
+> mkdir bin
+> cd bin
+> cmake ..
+
+Open the generated project file in XCode and compile
+```
+
+Windows:
+```
+> mkdir bin
+> cd bin
+> cmake ..
+
+Open the generated project file in Visual Studio and compile
+```
