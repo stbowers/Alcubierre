@@ -12,6 +12,18 @@
 
 #define MAX_MISSION_TITLE 30
 /* Structs for various game state objects */
+typedef struct Objective_s{
+    enum {
+        /* Scouting objectives */
+        OBJECTIVE_SCOUT, // basic scout sector, +fleet strength
+        /* Attack objectives */
+        OBJECTIVE_DESTROYWEAPONS, // destroy the enemy's weapons systems, -alien strength
+        OBJECTIVE_CRIPPLESHIPPING, // destroy the enemy's landing pad, -alien strenght
+        OBJECTIVE_DESTROYRESOURCES, // destroy the enemy's storeroom, -alien strength
+        OBJECTIVE_CRIPPLEINTEL, // destroy the enemy's control room, -alien strength
+    } objectiveType;
+} Objective;
+
 typedef struct Mission_s{
     char missionTitle[MAX_MISSION_TITLE];
     enum {
@@ -19,6 +31,9 @@ typedef struct Mission_s{
         MISSION_STATION,
         MISSION_STORE,
     } missionType;
+
+    /* Each mission has one scouting objective, one attack objective, and on aid objective */
+    Objective objectives[3];
 } Mission;
 
 // Stores the game state - used by AlcubierreGame.c not by engine

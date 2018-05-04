@@ -14,6 +14,7 @@
 #include <objects/Room.h>
 
 typedef struct BaseMissionScreenState_s{
+    // background
     GameObject* backgroundTexture;
 
     // info screen
@@ -76,6 +77,14 @@ typedef struct BaseMissionScreenState_s{
     RoomData* playerWeaponsTarget;
     RoomData* playerAssistTarget;
     RoomData* enemyWeaponsTarget;
+
+    // Laser bolts/missiles drawn onto this overlay
+    Panel* weaponFireOverlay;
+
+    // x and y coordinates for weapon bolts/missiles
+    int playerLaserX, playerLaserY;
+    int playerMissileX, playerMissileY;
+    int enemyLaserX, enemyLaserY;
 } BaseMissionScreenState;
 extern BaseMissionScreenState baseMissionScreenState;
 extern ThreadLock_t baseMissionScreenStateLock;
@@ -83,6 +92,9 @@ extern ThreadLock_t baseMissionScreenStateLock;
 /* Main functions */
 void buildBaseMissionScreen();
 void updateBaseMissionScreen();
+
+/* Custom draw functions */
+void drawWeaponFireOverlay(Object* overlay, CursesChar* buffer);
 
 /* Handle events */
 void baseMissionScreenHandleEvents(Object* screen, Event* event);

@@ -60,6 +60,12 @@ void buildBaseMissionScreen(){
     /* Create panel for base mission screen */
     gameState.baseMissionScreen = createPanel(gameState.engine->width, gameState.engine->height, 0, 0, 1);
 
+    /* Create weapons overlay panel */
+    // z is 20, to make sure it's above any other layer
+    baseMissionScreenState.weaponFireOverlay = createPanel(gameState.engine->width, gameState.engine->height, 0, 0, 20);
+    baseMissionScreenState.weaponFireOverlay->objectProperties.drawObject = drawWeaponFireOverlay;
+    gameState.baseMissionScreen->addObject(gameState.baseMissionScreen, (Object*)baseMissionScreenState.weaponFireOverlay);
+
     // regiter panel for events
     gameState.baseMissionScreen->objectProperties.handleEvent = baseMissionScreenHandleEvents;
     EventTypeMask eventTypes;
@@ -220,6 +226,33 @@ void refreshBaseMissionScreen(){
     updateProgressBar(baseMissionScreenState.alienStrengthProgressBar, gameState.alienStrenth / 100.0f, 0);
 }
 
+void drawWeaponFireOverlay(Object* overlay, CursesChar* buffer){
+    CursesChar* laserBolt = &buffer[(gameState.engine->stdscrHeight * baseMissionScreenState.playerLaserX) + baseMissionScreenState.playerLaserY];
+    CursesChar* missile = &buffer[(gameState.engine->stdscrHeight * baseMissionScreenState.playerMissileX) + baseMissionScreenState.playerMissileY];
+    CursesChar* enemyLaser = &buffer[(gameState.engine->stdscrHeight * baseMissionScreenState.enemyLaserX) + baseMissionScreenState.enemyLaserY];
+    
+    int colorBlack = getBestColor(0, 0, 0, gameState.engine);
+    int colorRed = getBestColor(255, 100, 100, gameState.engine);
+    int colorBlue = getBestColor(100, 100, 255, gameState.engine);
+    int playerColorPair = getColorPair(colorRed, colorBlack, gameState.engine);
+    int alienColorPair = getColorPair(colorBlue, colorBlack, gameState.engine);
+
+    if (baseMissionScreenState.playerLaserX + baseMissionScreenState.playerLaserY != 0){
+        laserBolt->attributes = COLOR_PAIR(playerColorPair);
+        laserBolt->character = L'#';
+    }
+
+    if (baseMissionScreenState.playerMissileX + baseMissionScreenState.playerMissileY != 0){
+        missile->attributes = 0;
+        missile->character = L'#';
+    }
+    
+    if (baseMissionScreenState.enemyLaserX + baseMissionScreenState.enemyLaserY != 0){
+        enemyLaser->attributes = COLOR_PAIR(alienColorPair);
+        enemyLaser->character = L'#';
+    }
+}
+
 void updateBaseMissionScreen(Mission* mission){
     ShipData* shipData = (ShipData*)baseMissionScreenState.shipObject->userData;
     EnemyBaseData* enemyData = (EnemyBaseData*)baseMissionScreenState.enemyBase->userData;
@@ -228,6 +261,10 @@ void updateBaseMissionScreen(Mission* mission){
     
     // start paused
     baseMissionScreenState.mode = MODE_PAUSED;
+    // if the info screen is on, keep that, otherwise change listener to pause listener
+    if (gameState.baseMissionScreen->objectProperties.handleEvent != baseMissionScreenHandleEventsInfoScreen){
+        gameState.baseMissionScreen->objectProperties.handleEvent = baseMissionScreenHandleEventsPaused;
+    }
 
     shipData->totalPower = 12; // you have 12 total power
     shipData->availablePower = 9; // of which you can use 8
@@ -240,6 +277,13 @@ void updateBaseMissionScreen(Mission* mission){
     shipData->engineCharge = 0;
     shipData->weapons1Charge = 0;
     shipData->weapons2Charge = 0;
+
+    baseMissionScreenState.playerLaserX = 0;
+    baseMissionScreenState.playerLaserY = 0;
+    baseMissionScreenState.playerMissileX = 0;
+    baseMissionScreenState.playerMissileY = 0;
+    baseMissionScreenState.enemyLaserX = 0;
+    baseMissionScreenState.enemyLaserY = 0;
 
     // enemy base data
     enemyData->weaponsCharge = 0;
@@ -448,13 +492,36 @@ void baseMissionScreenHandleEvents(Object* overviewScreen, Event* event){
         // calculate new values for weapon charges - uses the same calculation as above for engine charge, deltat is the same
         shipData->weapons1Charge += dW1dt*((float)deltat/1000.0f);
         shipData->weapons2Charge += dW2dt*((float)deltat/1000.0f);
+
+        /* Player bullet animation logic */
+        static float timePassed_playerLaserAnimation = 0.0f;
+        static enum {PL_STAGE1, PL_STAGE2} playerLaserStage = PL_STAGE1;
+        static const int playerLaserStartX = 167; // where the bullet starts
+        static const int playerLaserStartY = 9;
+        static const int playerLaserTeleportX = 254; // bolt teleports to the upper screen when it gets to the seperator
+        static const int playerLaserSecondX = 190; // where the bullet teleports to
+        static const int playerLaserSecondY = 36;
+        static const int playerLaserFinalX = 190; // where the bullet should hit
+        static const int playerLaserFinalY = 55;
+        static float timePassed_playerMissileAnimation = 0.0f;
+        static enum {PM_STAGE1, PM_STAGE2} playerMissileStage = PM_STAGE1;
+        static const int playerMissileStartX = 167; // where the bullet starts
+        static const int playerMissileStartY = 25;
+        static const int playerMissileTeleportX = 254; // bolt teleports to the upper screen when it gets to the seperator
+        static const int playerMissileSecondX = 180; // where the bullet teleports to
+        static const int playerMissileSecondY = 36;
+        static const int playerMissileFinalX = 180; // where the bullet should hit
+        static const int playerMissileFinalY = 55;
         
         // If weapon charge goes above 1 and we have a target then fire, otherwise cap at 1
         if (shipData->weapons1Charge >= 1.0f){
             bool target = true; // hardcoded for now - will depend on room target later
             if (target){
-                int damage = 3; // 2% damage to alien strength
-                gameState.alienStrenth -= damage;
+                // start laser animation
+                playerLaserStage = PL_STAGE1;
+                baseMissionScreenState.playerLaserX = playerLaserStartX;
+                baseMissionScreenState.playerLaserY = playerLaserStartY;
+
                 // reset weapons
                 shipData->weapons1Charge = 0.0f;
             } else {
@@ -465,8 +532,11 @@ void baseMissionScreenHandleEvents(Object* overviewScreen, Event* event){
         if (shipData->weapons2Charge >= 1.0f){
             bool target = true; // hardcoded for now - will depend on room target later
             if (target){
-                int damage = 6; // 5% damage to alien strength
-                gameState.alienStrenth -= damage;
+                // start missile animation
+                playerLaserStage = PL_STAGE1;
+                baseMissionScreenState.playerMissileX = playerMissileStartX;
+                baseMissionScreenState.playerMissileY = playerMissileStartY;
+                
                 // reset weapons
                 shipData->weapons2Charge = 0.0f;
             } else {
@@ -482,33 +552,176 @@ void baseMissionScreenHandleEvents(Object* overviewScreen, Event* event){
             shipData->weapons2Charge = 0.0f;
         }
 
+        // move bullet if not at 0,0
+        if (baseMissionScreenState.playerLaserX + baseMissionScreenState.playerLaserY != 0){
+            switch (playerLaserStage){
+            case PL_STAGE1:
+                // go right from ship
+                if (timePassed_playerLaserAnimation > .1f){
+                    baseMissionScreenState.playerLaserX += 2;
+                    timePassed_playerLaserAnimation = 0.0f;
+                } else {
+                    timePassed_playerLaserAnimation += .1;
+                }
+
+                // if we've reached teleportX position, move to next stage
+                if (baseMissionScreenState.playerLaserX >= playerLaserTeleportX){
+                    baseMissionScreenState.playerLaserX = playerLaserSecondX;
+                    baseMissionScreenState.playerLaserY = playerLaserSecondY;
+                    playerLaserStage = PL_STAGE2;
+                }
+                break;
+            case PL_STAGE2:
+                // move down towards enemy base
+                if (timePassed_playerLaserAnimation > .1f){
+                    baseMissionScreenState.playerLaserY += 2;
+                    timePassed_playerLaserAnimation = 0.0f;
+                } else {
+                    timePassed_playerLaserAnimation += .1;
+                }
+
+                // if our x,y coordinates match the target, deal damage and remove the bullet
+                if (baseMissionScreenState.playerLaserX == playerLaserFinalX && baseMissionScreenState.playerLaserY >= playerLaserFinalY){
+                    // remove bullet
+                    baseMissionScreenState.playerLaserX = 0;
+                    baseMissionScreenState.playerLaserY = 0;
+                    playerLaserStage = PL_STAGE1;
+                    
+                    // deal damage
+                    gameState.alienStrenth -= 1;
+                }
+                break;
+            };
+        }
+        
+        // move bullet if not at 0,0
+        if (baseMissionScreenState.playerMissileX + baseMissionScreenState.playerMissileY != 0){
+            switch (playerMissileStage){
+            case PM_STAGE1:
+                // go right from ship
+                if (timePassed_playerMissileAnimation > .1f){
+                    baseMissionScreenState.playerMissileX += 2;
+                    timePassed_playerMissileAnimation = 0.0f;
+                } else {
+                    timePassed_playerMissileAnimation += .1;
+                }
+
+                // if we've reached teleportX position, move to next stage
+                if (baseMissionScreenState.playerMissileX >= playerMissileTeleportX){
+                    baseMissionScreenState.playerMissileX = playerMissileSecondX;
+                    baseMissionScreenState.playerMissileY = playerMissileSecondY;
+                    playerMissileStage = PM_STAGE2;
+                }
+                break;
+            case PM_STAGE2:
+                // move down towards enemy base
+                if (timePassed_playerMissileAnimation > .1f){
+                    baseMissionScreenState.playerMissileY += 2;
+                    timePassed_playerMissileAnimation = 0.0f;
+                } else {
+                    timePassed_playerMissileAnimation += .1;
+                }
+
+                // if our x,y coordinates match the target, deal damage and remove the bullet
+                if (baseMissionScreenState.playerMissileX == playerMissileFinalX && baseMissionScreenState.playerMissileY >= playerMissileFinalY){
+                    // remove bullet
+                    baseMissionScreenState.playerMissileX = 0;
+                    baseMissionScreenState.playerMissileY = 0;
+                    playerMissileStage = PM_STAGE1;
+                    
+                    // deal damage
+                    gameState.alienStrenth -= 2;
+                }
+                break;
+            };
+        }
+
         /* Calculate enemy weapons chage */
         // charge/s is .1 * (random number between 0 and 1 - biased towards higher numbers)
-        float dEWdt = .3 * (1 - pow((float)rand() / (float)RAND_MAX, 4));
+        float dEWdt = .1 * (1 - pow((float)rand() / (float)RAND_MAX, 1));
         ((EnemyBaseData*)baseMissionScreenState.enemyBase->userData)->weaponsCharge += dEWdt*((float)deltat/1000.0f);
         if (((EnemyBaseData*)baseMissionScreenState.enemyBase->userData)->weaponsCharge >= 1.0f){
             ((EnemyBaseData*)baseMissionScreenState.enemyBase->userData)->weaponsCharge = 1.0f;
         }
 
-        /* If the enemy weapons are fully charged, fire on our ship */
+        /* Enemy bullet animation logic */
+        static float timePassed_enemyLaserAnimation = 0.0f;
+        static enum {EL_STAGE1, EL_STAGE2} enemyLaserStage = EL_STAGE1;
+        static const int enemyLaserStartX = 173; // where the bullet starts
+        static const int enemyLaserStartY = 44;
+        static const int enemyLaserTeleportY = 36; // bolt teleports to the upper screen when it gets to the seperator
+        static const int enemyLaserSecondX = 254; // where the bullet teleports to
+        static const int enemyLaserSecondY = 20;
+        static const int enemyLaserFinalX = 180; // where the bullet should hit
+        static const int enemyLaserFinalY = 20;
+
+        // if weapons charge is full, put the laser bolt at startX and startY
         if (((EnemyBaseData*)baseMissionScreenState.enemyBase->userData)->weaponsCharge >= 1.0f){
-            int damage = 25;
-            // reduce damage by 7*shield power
-            damage -= 7*shipData->shieldPower;
+            // set the starting location for the enemy laser bolt
+            baseMissionScreenState.enemyLaserX = enemyLaserStartX;
+            baseMissionScreenState.enemyLaserY = enemyLaserStartY;
+            enemyLaserStage = EL_STAGE1;
+        }
 
-            // deal damage
-            gameState.shipHealth -= damage;
+        // move laser bolt if not at 0,0
+        if (baseMissionScreenState.enemyLaserX + baseMissionScreenState.enemyLaserY != 0){
+            switch (enemyLaserStage){
+            case EL_STAGE1:
+                // go up from enemy base
+                if (timePassed_enemyLaserAnimation > .2f){
+                    baseMissionScreenState.enemyLaserY -= 2;
+                    timePassed_enemyLaserAnimation= 0.0f;
+                } else {
+                    timePassed_enemyLaserAnimation += .1;
+                }
 
-            // if health is at 0, end game
-            if (gameState.shipHealth <= 0){
-                // update game over screen
-                updateGameOverScreen(ENDING_CRITICALFAIL);
+                // if we've reached teleportY position, move to next stage
+                if (baseMissionScreenState.enemyLaserY <= enemyLaserTeleportY){
+                    baseMissionScreenState.enemyLaserX = enemyLaserSecondX;
+                    baseMissionScreenState.enemyLaserY = enemyLaserSecondY;
+                    enemyLaserStage = EL_STAGE2;
+                }
+                break;
+            case EL_STAGE2:
+                // move left from edge of screen towards ship
+                if (timePassed_enemyLaserAnimation > .1f){
+                    baseMissionScreenState.enemyLaserX -= 2;
+                    timePassed_enemyLaserAnimation = 0.0f;
+                } else {
+                    timePassed_enemyLaserAnimation += .1;
+                }
 
-                // switch to game over screen
-                gameState.engine->mainPanel->childrenList = (Object*)gameState.gameOverScreen;
-                gameState.engine->mainPanel->listeners = gameState.gameOverScreenListenerList;
-            }
+                // if our x,y coordinates match the target, deal damage and remove the bullet
+                if (baseMissionScreenState.enemyLaserX <= enemyLaserFinalX && baseMissionScreenState.enemyLaserY == enemyLaserFinalY){
+                    // remove bullet
+                    baseMissionScreenState.enemyLaserX = 0;
+                    baseMissionScreenState.enemyLaserY = 0;
+                    enemyLaserStage = EL_STAGE1;
+                    
+                    // do damage to ship
+                    int damage = 15;
+                    // reduce damage by 3*shield power
+                    damage -= 3*shipData->shieldPower;
 
+                    // deal damage
+                    gameState.shipHealth -= damage;
+
+                    // if health is at 0, end game
+                    if (gameState.shipHealth <= 0){
+                        // update game over screen
+                        updateGameOverScreen(ENDING_CRITICALFAIL);
+
+                        // switch to game over screen
+                        gameState.engine->mainPanel->childrenList = (Object*)gameState.gameOverScreen;
+                        gameState.engine->mainPanel->listeners = gameState.gameOverScreenListenerList;
+                    }
+                }
+                break;
+            };
+        }
+
+        // reset enemy weapons if charge is at 1
+        if (((EnemyBaseData*)baseMissionScreenState.enemyBase->userData)->weaponsCharge >= 1.0f){
             // reset enemy weapons charge
             ((EnemyBaseData*)baseMissionScreenState.enemyBase->userData)->weaponsCharge = 0.0f;
         }
