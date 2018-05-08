@@ -30,6 +30,7 @@ typedef struct Mission_s{
         MISSION_BASE,
         MISSION_STATION,
         MISSION_STORE,
+        MISSION_STARGATE,
     } missionType;
 
     /* Each mission has one scouting objective, one attack objective, and on aid objective */

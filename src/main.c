@@ -4,6 +4,8 @@
  * University of Colorado at Colorado Springs
  *
  * Licensed under the MIT License (see LICENSE.txt)
+ *
+ * GitHub repository: https://github.com/stbowers/Alcubierre
  */
 #include <engine.h>
 #include <stdlib.h>

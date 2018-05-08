@@ -112,12 +112,25 @@ void initializeWorldState(){
     gameState.currentSector = 0;
 
     /* Create missions */
+    /* Set missions (sector & mission start at 0):
+     * sector 2, mission 2 (last in inner solar system) - store
+     * sector 5, mission 2 (last in mid solar system) - store
+     * sector 7, mission 2 (2nd to last in outer solar system) - store
+     * sector 8, only 1 mission - stargate assault
+     *
+     * Other missions:
+     * Randomly selected
+     */
+    // start by setting every mission to a random one
     for (int sector = 0; sector < 9; sector++){
         for (int mission = 0; mission < 3; mission++){
+            int missionType = rand() % 4; // random number between 0 and 3
             strcpy(gameState.missions[sector][mission].missionTitle, "Assault Alien Base");
             gameState.missions[sector][mission].missionType = MISSION_BASE;
         }
     }
+
+    // overwrite the constant missions
     strcpy(gameState.missions[0][0].missionTitle, "Scout Alien Solar Station");
     strcpy(gameState.missions[0][2].missionTitle, "Protect Resistance Base");
 
