@@ -9,6 +9,7 @@
 #define __TITLESCREEN_H__
 
 #include <engine.h>
+#include <SFML/Audio.h>
 
 typedef struct TitleScreenState_s{
     Panel* infoPanel;
@@ -19,6 +20,9 @@ typedef struct TitleScreenState_s{
     /* difficulty selection panel objects */
     GameObject* difficultyInfoTextBox;
     GameObject* difficultySelectMenu;
+
+    /* Other resources */
+    sfMusic* gameMusic;
 } TitleScreenState;
 extern TitleScreenState titleScreenState;
 extern ThreadLock_t titleScreenStateLock;

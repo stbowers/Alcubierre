@@ -71,6 +71,9 @@ void buildTitleScreen(){
 
 
 
+    /* Load music */
+    titleScreenState.gameMusic = sfMusic_createFromFile("./assets/music.wav");
+
     /* Save listener list */
     gameState.titleScreenListenerList = gameState.engine->mainPanel->listeners;
 
@@ -212,6 +215,9 @@ void difficultyChosenCallback(int index){
 
     /* Change event listeners to those for the overview screen */
     gameState.engine->mainPanel->listeners = gameState.overviewScreenListenerList;
+
+    /* Play music */
+    sfMusic_play(titleScreenState.gameMusic);
 
 }
 

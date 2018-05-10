@@ -7,6 +7,15 @@ University of Colorado at Colorado Springs
 
 Licensed under the MIT License (LICENSE.txt)
 
+## Dependencies
+Make sure these libraries are installed on your system before compiling:
+- ncurses (for macos and linux, needs wide character support, default on macOS, varies on linux)
+- pdcurses (for windows)
+- csfml (all platforms, used for audio)
+
+Build tools:
+- cmake
+
 ## Building
 Use cmake to generate build files for your individual system. Works with Linux, macOS, and Windows
 
