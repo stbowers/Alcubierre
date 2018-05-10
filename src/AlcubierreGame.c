@@ -131,8 +131,14 @@ void initializeWorldState(){
     }
 
     // overwrite the constant missions
-    strcpy(gameState.missions[0][0].missionTitle, "Scout Alien Solar Station");
-    strcpy(gameState.missions[0][2].missionTitle, "Protect Resistance Base");
+    strcpy(gameState.missions[2][2].missionTitle, "Store");
+    gameState.missions[2][2].missionType = MISSION_STORE;
+    strcpy(gameState.missions[5][2].missionTitle, "Store");
+    gameState.missions[5][2].missionType = MISSION_STORE;
+    strcpy(gameState.missions[7][2].missionTitle, "Store");
+    gameState.missions[7][2].missionType = MISSION_STORE;
+    strcpy(gameState.missions[8][0].missionTitle, "Assault Stargate");
+    gameState.missions[8][0].missionType = MISSION_STARGATE;
 
     /* Basic stats */
     gameState.shipHealth = 100;
