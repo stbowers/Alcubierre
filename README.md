@@ -1,12 +1,15 @@
 # Alcubierre
 A FTL-like video game programmed in C using the ncurses library
 
+Demo: https://www.youtube.com/watch?v=mibEH-Isyqo
+
 Programmed for CS 2060, section 3, Spring 2018
 
 University of Colorado at Colorado Springs
 
 Licensed under the MIT License (LICENSE.txt)
 
+NOTE: The game works best in linux (tested in urxvt, but should work in any 256 color terminal with UTF-8 support). It will also work on macOS or Windows, but the experience will be less than ideal.
 ## Dependencies
 Make sure these libraries are installed on your system before compiling:
 - ncurses (for macos and linux, needs wide character support, default on macOS, varies on linux)
